@@ -13,7 +13,6 @@ instructor Anna
 can teach Lindy Hop beginner, Solo Jazz beginner
 available Monday-Thursday 17:00-22:30
 prefers teaching with Ivona
-cannot teach with Ana
 
 instructor Ivona
 can teach Lindy Hop beginner
