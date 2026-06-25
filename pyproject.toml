@@ -17,3 +17,6 @@ test = [
 DJANGO_SETTINGS_MODULE = "lesson_scheduling.settings"
 python_files = ["test_*.py"]
 testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+include = ["lesson_scheduling", "lesson_scheduling.*", "scheduler", "scheduler.*"]
