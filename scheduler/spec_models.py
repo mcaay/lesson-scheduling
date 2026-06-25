@@ -8,6 +8,8 @@ def to_slot(value):
     hour_text, minute_text = value.split(":", 1)
     hour = int(hour_text)
     minute = int(minute_text)
+    if minute < 0 or minute > 59:
+        raise ValueError(f"Time must use HH:MM with minutes from 00 to 59: {value}")
     if minute % 5 != 0:
         raise ValueError(f"Time must use a 5-minute grid: {value}")
     return (hour * 60 + minute) // 5

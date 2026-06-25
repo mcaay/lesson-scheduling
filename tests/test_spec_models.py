@@ -16,6 +16,15 @@ def test_to_slot_rejects_off_grid_minutes():
         raise AssertionError("Expected ValueError")
 
 
+def test_to_slot_rejects_invalid_minutes():
+    try:
+        to_slot("18:60")
+    except ValueError as error:
+        assert str(error) == "Time must use HH:MM with minutes from 00 to 59: 18:60"
+    else:
+        raise AssertionError("Expected ValueError")
+
+
 def test_time_range_duration_minutes():
     time_range = TimeRange(day="Monday", start="18:00", end="19:25")
 
