@@ -49,3 +49,6 @@ yarn-error.log*
 
 # Local brainstorming companion output
 .superpowers/
+
+# Local implementation worktrees
+.worktrees/
