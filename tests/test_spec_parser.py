@@ -29,6 +29,15 @@ def test_parse_reports_missing_capacity():
     assert result.errors[0].message == "Room Main Hall is missing capacity"
 
 
+def test_parse_reports_missing_group_field():
+    result = parse_spec("group Lindy Hop 1\nstudents 24")
+
+    assert not result.is_valid
+    assert result.spec is None
+    assert result.errors[0].line == 1
+    assert result.errors[0].message == "Group Lindy Hop 1 is missing style"
+
+
 def test_parse_reports_invalid_day_without_crashing():
     result = parse_spec("lesson blocks\nFunday 18:00-19:25")
 
