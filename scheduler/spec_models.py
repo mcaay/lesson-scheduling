@@ -1,10 +1,18 @@
+import re
 from dataclasses import dataclass, field
 
 
 DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+TIME_RE = re.compile(r"\d{2}:\d{2}")
+
+
+def is_hhmm_time(value):
+    return TIME_RE.fullmatch(value) is not None
 
 
 def to_slot(value):
+    if not is_hhmm_time(value):
+        raise ValueError(f"Time must use HH:MM: {value}")
     hour_text, minute_text = value.split(":", 1)
     hour = int(hour_text)
     minute = int(minute_text)

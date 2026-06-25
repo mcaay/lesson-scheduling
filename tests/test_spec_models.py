@@ -34,6 +34,17 @@ def test_to_slot_rejects_invalid_hours():
         raise AssertionError("Expected ValueError")
 
 
+def test_to_slot_rejects_overlong_time_before_integer_conversion():
+    value = f"{'1' * 5000}:00"
+
+    try:
+        to_slot(value)
+    except ValueError as error:
+        assert str(error) == f"Time must use HH:MM: {value}"
+    else:
+        raise AssertionError("Expected ValueError")
+
+
 def test_time_range_duration_minutes():
     time_range = TimeRange(day="Monday", start="18:00", end="19:25")
 

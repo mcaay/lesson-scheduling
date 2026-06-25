@@ -85,6 +85,30 @@ def test_parse_reports_malformed_time_cleanly():
     assert result.errors[0].message == "Invalid lesson block: Monday 18-19:25"
 
 
+def test_parse_rejects_time_without_two_digit_hour():
+    result = parse_spec("lesson blocks\nMonday 8:00-09:00")
+
+    assert not result.is_valid
+    assert result.errors[0].line == 2
+    assert result.errors[0].message == "Invalid lesson block: Monday 8:00-09:00"
+
+
+def test_parse_rejects_time_with_three_digit_hour():
+    result = parse_spec("lesson blocks\nMonday 018:00-19:00")
+
+    assert not result.is_valid
+    assert result.errors[0].line == 2
+    assert result.errors[0].message == "Invalid lesson block: Monday 018:00-19:00"
+
+
+def test_parse_rejects_time_with_three_digit_minutes():
+    result = parse_spec("lesson blocks\nMonday 18:000-19:00")
+
+    assert not result.is_valid
+    assert result.errors[0].line == 2
+    assert result.errors[0].message == "Invalid lesson block: Monday 18:000-19:00"
+
+
 def test_parse_invalid_capacity_has_single_clear_error():
     result = parse_spec("room Main Hall\ncapacity nope")
 

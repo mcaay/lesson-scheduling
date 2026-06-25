@@ -8,6 +8,7 @@ from scheduler.spec_models import (
     SpecError,
     TimeRange,
     ValidationResult,
+    is_hhmm_time,
 )
 
 
@@ -267,8 +268,7 @@ def parse_time_ranges(line, line_number):
 
 
 def is_time_text(value):
-    parts = value.split(":")
-    return len(parts) == 2 and all(part.isdigit() for part in parts)
+    return is_hhmm_time(value)
 
 
 def expand_days(day_text, line_number):
