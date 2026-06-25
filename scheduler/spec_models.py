@@ -8,6 +8,8 @@ def to_slot(value):
     hour_text, minute_text = value.split(":", 1)
     hour = int(hour_text)
     minute = int(minute_text)
+    if hour < 0 or hour > 23:
+        raise ValueError(f"Time must use HH:MM with hours from 00 to 23: {value}")
     if minute < 0 or minute > 59:
         raise ValueError(f"Time must use HH:MM with minutes from 00 to 59: {value}")
     if minute % 5 != 0:
@@ -30,7 +32,13 @@ class TimeRange:
 
     @property
     def duration_minutes(self):
-        return (to_slot(self.end) - to_slot(self.start)) * 5
+        start_slot = to_slot(self.start)
+        end_slot = to_slot(self.end)
+        if end_slot <= start_slot:
+            raise ValueError(
+                f"Time range end must be after start: {self.start}-{self.end}"
+            )
+        return (end_slot - start_slot) * 5
 
 
 @dataclass(frozen=True)

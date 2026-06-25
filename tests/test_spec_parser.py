@@ -37,9 +37,49 @@ def test_parse_reports_invalid_day_without_crashing():
     assert result.errors[0].message == "Unknown day: Funday"
 
 
+def test_parse_error_does_not_return_partial_spec():
+    result = parse_spec("lesson blocks\nFunday 18:00-19:25")
+
+    assert not result.is_valid
+    assert result.spec is None
+
+
 def test_parse_reports_off_grid_time_without_crashing():
     result = parse_spec("lesson blocks\nMonday 18:04-19:25")
 
     assert not result.is_valid
     assert result.errors[0].line == 2
     assert result.errors[0].message == "Time must use a 5-minute grid: 18:04"
+
+
+def test_parse_reports_end_before_start():
+    result = parse_spec("lesson blocks\nMonday 20:00-19:00")
+
+    assert not result.is_valid
+    assert result.errors[0].line == 2
+    assert result.errors[0].message == "Time range end must be after start: 20:00-19:00"
+
+
+def test_parse_reports_hour_out_of_range():
+    result = parse_spec("lesson blocks\nMonday 25:00-26:00")
+
+    assert not result.is_valid
+    assert result.errors[0].line == 2
+    assert result.errors[0].message == "Time must use HH:MM with hours from 00 to 23: 25:00"
+
+
+def test_parse_reports_malformed_time_cleanly():
+    result = parse_spec("lesson blocks\nMonday 18-19:25")
+
+    assert not result.is_valid
+    assert result.errors[0].line == 2
+    assert result.errors[0].message == "Invalid lesson block: Monday 18-19:25"
+
+
+def test_parse_invalid_capacity_has_single_clear_error():
+    result = parse_spec("room Main Hall\ncapacity nope")
+
+    assert not result.is_valid
+    assert len(result.errors) == 1
+    assert result.errors[0].line == 2
+    assert result.errors[0].message == "Capacity must be a whole number: nope"

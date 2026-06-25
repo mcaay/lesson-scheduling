@@ -21,6 +21,9 @@ GROUP_REQUIRED = (
 )
 
 
+INVALID_NUMBER = object()
+
+
 def parse_spec(text):
     errors = []
     lesson_blocks = []
@@ -38,7 +41,7 @@ def parse_spec(text):
                 errors.append(
                     SpecError(item["line"], f"Room {item['name']} is missing capacity")
                 )
-            else:
+            elif item["capacity"] is not INVALID_NUMBER:
                 rooms.append(Room(name=item["name"], capacity=item["capacity"]))
 
         if section == "instructor" and item is not None:
@@ -55,11 +58,14 @@ def parse_spec(text):
 
         if section == "group" and item is not None:
             missing = [label for field, label in GROUP_REQUIRED if item[field] is None]
+            has_invalid_number = any(
+                item[field] is INVALID_NUMBER for field, _ in GROUP_REQUIRED
+            )
             for field in missing:
                 errors.append(
                     SpecError(item["line"], f"Group {item['name']} is missing {field}")
                 )
-            if not missing:
+            if not missing and not has_invalid_number:
                 groups.append(
                     Group(
                         name=item["name"],
@@ -135,6 +141,9 @@ def parse_spec(text):
             errors.append(SpecError(line_number, f"Unknown line: {line}"))
 
     finish_item()
+    if errors:
+        return ValidationResult(spec=None, errors=tuple(errors))
+
     spec = ScheduleSpec(
         lesson_blocks=tuple(lesson_blocks),
         rooms=tuple(rooms),
@@ -146,7 +155,9 @@ def parse_spec(text):
 
 def parse_room_field(room, line, line_number, errors):
     if line.startswith("capacity "):
-        room["capacity"] = parse_int(line.removeprefix("capacity "), line_number, errors)
+        room["capacity"] = parse_int(
+            line.removeprefix("capacity "), line_number, errors, "Capacity"
+        )
     else:
         errors.append(SpecError(line_number, f"Unknown line: {line}"))
 
@@ -179,7 +190,9 @@ def parse_instructor_field(instructor, line, line_number, errors):
 
 def parse_group_field(group, line, line_number, errors):
     if line.startswith("students "):
-        group["students"] = parse_int(line.removeprefix("students "), line_number, errors)
+        group["students"] = parse_int(
+            line.removeprefix("students "), line_number, errors, "Students"
+        )
     elif line.startswith("style "):
         group["style"] = line.removeprefix("style ").strip()
     elif line.startswith("level "):
@@ -193,6 +206,7 @@ def parse_group_field(group, line, line_number, errors):
             errors,
             "needs ",
             (" lesson per week", " lessons per week"),
+            "Lessons per week",
         )
     elif line.startswith("duration "):
         parse_group_int(
@@ -203,21 +217,22 @@ def parse_group_field(group, line, line_number, errors):
             errors,
             "duration ",
             (" minute", " minutes"),
+            "Duration",
         )
     elif line.startswith("teachers "):
         group["teachers_required"] = parse_int(
-            line.removeprefix("teachers "), line_number, errors
+            line.removeprefix("teachers "), line_number, errors, "Teachers"
         )
     else:
         errors.append(SpecError(line_number, f"Unknown line: {line}"))
 
 
-def parse_group_int(group, field, line, line_number, errors, prefix, suffixes):
+def parse_group_int(group, field, line, line_number, errors, prefix, suffixes, label):
     value = strip_suffix(line.removeprefix(prefix), suffixes)
     if value is None:
         errors.append(SpecError(line_number, f"Unknown line: {line}"))
     else:
-        group[field] = parse_int(value, line_number, errors)
+        group[field] = parse_int(value, line_number, errors, label)
 
 
 def add_ranges(target, line, line_number, errors, wrapper=None):
@@ -240,6 +255,8 @@ def parse_time_ranges(line, line_number):
     start, end = time_text.split("-", 1)
     if not start or not end:
         return (), (SpecError(line_number, f"Unknown line: {line}"),)
+    if not is_time_text(start) or not is_time_text(end):
+        return (), (SpecError(line_number, f"Invalid lesson block: {line}"),)
 
     try:
         TimeRange(day=days[0], start=start, end=end).duration_minutes
@@ -247,6 +264,11 @@ def parse_time_ranges(line, line_number):
         return (), (SpecError(line_number, str(error)),)
 
     return tuple(TimeRange(day=day, start=start, end=end) for day in days), ()
+
+
+def is_time_text(value):
+    parts = value.split(":")
+    return len(parts) == 2 and all(part.isdigit() for part in parts)
 
 
 def expand_days(day_text, line_number):
@@ -269,12 +291,15 @@ def expand_days(day_text, line_number):
     return tuple(DAYS[start_index : end_index + 1]), None
 
 
-def parse_int(value, line_number, errors):
+def parse_int(value, line_number, errors, label):
+    stripped = value.strip()
     try:
-        return int(value.strip())
-    except ValueError as error:
-        errors.append(SpecError(line_number, str(error)))
-        return None
+        return int(stripped)
+    except ValueError:
+        errors.append(
+            SpecError(line_number, f"{label} must be a whole number: {stripped}")
+        )
+        return INVALID_NUMBER
 
 
 def parse_list(value):

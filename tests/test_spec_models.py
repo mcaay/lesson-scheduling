@@ -25,10 +25,30 @@ def test_to_slot_rejects_invalid_minutes():
         raise AssertionError("Expected ValueError")
 
 
+def test_to_slot_rejects_invalid_hours():
+    try:
+        to_slot("25:00")
+    except ValueError as error:
+        assert str(error) == "Time must use HH:MM with hours from 00 to 23: 25:00"
+    else:
+        raise AssertionError("Expected ValueError")
+
+
 def test_time_range_duration_minutes():
     time_range = TimeRange(day="Monday", start="18:00", end="19:25")
 
     assert time_range.duration_minutes == 85
+
+
+def test_time_range_rejects_end_before_start():
+    time_range = TimeRange(day="Monday", start="20:00", end="19:00")
+
+    try:
+        time_range.duration_minutes
+    except ValueError as error:
+        assert str(error) == "Time range end must be after start: 20:00-19:00"
+    else:
+        raise AssertionError("Expected ValueError")
 
 
 def test_example_spec_contains_required_sections():
