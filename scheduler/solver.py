@@ -162,18 +162,11 @@ def _same_block(first, second):
 
 
 def _conflicts(first, second):
-    # The first solver treats same-day blocks for one room as alternatives.
-    if first.room.name == second.room.name and _same_day(first, second):
-        return True
-
     return _same_block(first, second) and (
-        first.group.name == second.group.name
+        first.room.name == second.room.name
+        or first.group.name == second.group.name
         or _has_instructor_overlap(first, second)
     )
-
-
-def _same_day(first, second):
-    return first.lesson_block.time.day == second.lesson_block.time.day
 
 
 def _has_instructor_overlap(first, second):
