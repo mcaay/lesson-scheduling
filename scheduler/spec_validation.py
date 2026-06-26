@@ -9,6 +9,18 @@ def validate_spec(spec):
     if not spec.rooms:
         return [SpecError(None, "At least one room is required")]
 
+    instructor_names = {instructor.name for instructor in spec.instructors}
+    for instructor in spec.instructors:
+        for referenced_name in _referenced_instructor_names(instructor):
+            if referenced_name not in instructor_names:
+                errors.append(
+                    SpecError(
+                        None,
+                        f"Instructor {instructor.name} references unknown "
+                        f"instructor {referenced_name}",
+                    )
+                )
+
     for group in spec.groups:
         eligible_instructors = [
             instructor
@@ -25,19 +37,18 @@ def validate_spec(spec):
                 )
             )
 
-        if len(eligible_instructors) < group.teachers_required:
-            eligible_count = len(eligible_instructors)
-            instructor_text = (
-                "eligible instructor is available"
-                if eligible_count == 1
-                else "eligible instructors are available"
-            )
+        if group.teachers_required not in {1, 2}:
             errors.append(
                 SpecError(
                     None,
-                    f"Group {group.name} needs {group.teachers_required} teachers, "
-                    f"but only {eligible_count} {instructor_text}",
+                    f"Group {group.name} must require 1 or 2 teachers",
                 )
+            )
+            continue
+
+        if len(eligible_instructors) < group.teachers_required:
+            errors.append(
+                _too_few_eligible_instructors_error(group, len(eligible_instructors))
             )
             continue
 
@@ -50,6 +61,7 @@ def validate_spec(spec):
                     f"Group {group.name} needs two teachers, but every eligible pair is banned",
                 )
             )
+            continue
 
         if not _has_matching_lesson_block(
             spec.lesson_blocks, group, eligible_instructors
@@ -63,6 +75,33 @@ def validate_spec(spec):
             )
 
     return errors
+
+
+def _referenced_instructor_names(instructor):
+    return (
+        instructor.prefers_with
+        + instructor.avoids_with
+        + instructor.cannot_teach_with
+    )
+
+
+def _too_few_eligible_instructors_error(group, eligible_count):
+    if group.teachers_required == 1:
+        return SpecError(
+            None,
+            f"Group {group.name} has no eligible instructors for {group.teaching_key}",
+        )
+
+    instructor_text = (
+        "eligible instructor is available"
+        if eligible_count == 1
+        else "eligible instructors are available"
+    )
+    return SpecError(
+        None,
+        f"Group {group.name} needs {group.teachers_required} teachers, "
+        f"but only {eligible_count} {instructor_text}",
+    )
 
 
 def _has_allowed_pair(instructors):
