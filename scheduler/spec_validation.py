@@ -26,10 +26,17 @@ def validate_spec(spec):
             )
 
         if len(eligible_instructors) < group.teachers_required:
+            eligible_count = len(eligible_instructors)
+            instructor_text = (
+                "eligible instructor is available"
+                if eligible_count == 1
+                else "eligible instructors are available"
+            )
             errors.append(
                 SpecError(
                     None,
-                    f"Group {group.name} has no eligible instructors for {group.teaching_key}",
+                    f"Group {group.name} needs {group.teachers_required} teachers, "
+                    f"but only {eligible_count} {instructor_text}",
                 )
             )
             continue
@@ -82,7 +89,10 @@ def _has_matching_lesson_block(lesson_blocks, group, eligible_instructors):
             for instructor in eligible_instructors
             if _instructor_covers_block(instructor, lesson_block)
         ]
-        if len(available_instructors) >= group.teachers_required:
+        if group.teachers_required == 1 and available_instructors:
+            return True
+
+        if group.teachers_required == 2 and _has_allowed_pair(available_instructors):
             return True
 
     return False

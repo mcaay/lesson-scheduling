@@ -23,10 +23,13 @@ def test_validation_rejects_group_too_large_for_all_rooms():
     )
 
 
-def test_validation_rejects_no_eligible_instructor():
+def test_validation_reports_no_eligible_instructors_for_two_teacher_group():
     text = EXAMPLE_SPEC.replace(
         "can teach Lindy Hop beginner, Solo Jazz beginner",
         "can teach Solo Jazz beginner",
+    ).replace(
+        "instructor Ivona\ncan teach Lindy Hop beginner",
+        "instructor Ivona\ncan teach Solo Jazz beginner",
     )
     result = parse_spec(text)
 
@@ -34,7 +37,22 @@ def test_validation_rejects_no_eligible_instructor():
 
     assert (
         errors[0].message
-        == "Group Lindy Hop 1 has no eligible instructors for Lindy Hop beginner"
+        == "Group Lindy Hop 1 needs 2 teachers, but only 0 eligible instructors are available"
+    )
+
+
+def test_validation_reports_too_few_eligible_instructors_for_two_teacher_group():
+    text = EXAMPLE_SPEC.replace(
+        "instructor Ivona\ncan teach Lindy Hop beginner",
+        "instructor Ivona\ncan teach Solo Jazz beginner",
+    )
+    result = parse_spec(text)
+
+    errors = validate_spec(result.spec)
+
+    assert (
+        errors[0].message
+        == "Group Lindy Hop 1 needs 2 teachers, but only 1 eligible instructor is available"
     )
 
 
@@ -47,6 +65,23 @@ def test_validation_rejects_two_teacher_group_with_pair_ban():
     assert (
         errors[0].message
         == "Group Lindy Hop 1 needs two teachers, but every eligible pair is banned"
+    )
+
+
+def test_validation_rejects_available_pair_when_pair_is_banned():
+    text = EXAMPLE_SPEC + """
+instructor Solo
+can teach Lindy Hop beginner
+available Friday 18:00-19:25
+"""
+    text = text.replace("prefers teaching with Ivona", "cannot teach with Ivona")
+    result = parse_spec(text)
+
+    errors = validate_spec(result.spec)
+
+    assert (
+        errors[0].message
+        == "Group Lindy Hop 1 has no lesson block that matches duration and instructor availability"
     )
 
 
