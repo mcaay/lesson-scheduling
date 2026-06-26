@@ -153,19 +153,25 @@ def _add_resource_conflicts(model, variables, candidates):
                 model.Add(variables[first_index] + variables[second_index] <= 1)
 
 
-def _same_block(first, second):
-    return (
-        first.lesson_block.time.day == second.lesson_block.time.day
-        and first.lesson_block.time.start == second.lesson_block.time.start
-        and first.lesson_block.time.end == second.lesson_block.time.end
-    )
-
-
 def _conflicts(first, second):
-    return _same_block(first, second) and (
+    if not _overlaps(first, second):
+        return False
+
+    return (
         first.room.name == second.room.name
         or first.group.name == second.group.name
         or _has_instructor_overlap(first, second)
+    )
+
+
+def _overlaps(first, second):
+    first_time = first.lesson_block.time
+    second_time = second.lesson_block.time
+
+    return (
+        first_time.day == second_time.day
+        and to_slot(first_time.start) < to_slot(second_time.end)
+        and to_slot(second_time.start) < to_slot(first_time.end)
     )
 
 

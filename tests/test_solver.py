@@ -57,6 +57,81 @@ teachers 1
     assert {lesson.start for lesson in result.lessons} == {"18:00", "19:30"}
 
 
+def test_solver_blocks_overlapping_room_assignments():
+    text = """lesson blocks
+Monday 18:00-19:00
+Monday 18:30-19:30
+
+room Main Hall
+capacity 30
+
+instructor Anna
+can teach Lindy Hop beginner
+available Monday 17:00-22:00
+
+instructor Ivona
+can teach Lindy Hop beginner
+available Monday 17:00-22:00
+
+group Lindy Hop 1
+students 20
+style Lindy Hop
+level beginner
+needs 1 lesson per week
+duration 60 minutes
+teachers 1
+
+group Lindy Hop 2
+students 20
+style Lindy Hop
+level beginner
+needs 1 lesson per week
+duration 60 minutes
+teachers 1
+"""
+    spec = parse_spec(text).spec
+
+    result = solve_schedule(spec)
+
+    assert not result.solved
+    assert result.message == "No complete schedule found. The combined constraints are too tight."
+
+
+def test_solver_blocks_overlapping_group_assignments():
+    text = """lesson blocks
+Monday 18:00-19:00
+Monday 18:30-19:30
+
+room Main Hall
+capacity 30
+
+room Small Studio
+capacity 30
+
+instructor Anna
+can teach Lindy Hop beginner
+available Monday 17:00-22:00
+
+instructor Ivona
+can teach Lindy Hop beginner
+available Monday 17:00-22:00
+
+group Lindy Hop 1
+students 20
+style Lindy Hop
+level beginner
+needs 2 lesson per week
+duration 60 minutes
+teachers 1
+"""
+    spec = parse_spec(text).spec
+
+    result = solve_schedule(spec)
+
+    assert not result.solved
+    assert result.message == "No complete schedule found. The combined constraints are too tight."
+
+
 def test_solver_reports_unsolved_when_room_conflict_is_forced():
     text = """lesson blocks
 Monday 18:00-19:25
