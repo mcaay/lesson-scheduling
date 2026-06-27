@@ -1,0 +1,51 @@
+{% extends "scheduler/base.html" %}
+
+{% block content %}
+    <h1>Generated schedule</h1>
+
+    {% if result.solved %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Day</th>
+                    <th>Time</th>
+                    <th>Group</th>
+                    <th>Room</th>
+                    <th>Instructors</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for lesson in result.lessons %}
+                    <tr>
+                        <td>{{ lesson.day }}</td>
+                        <td>{{ lesson.start }}-{{ lesson.end }}</td>
+                        <td>{{ lesson.group_name }}</td>
+                        <td>{{ lesson.room_name }}</td>
+                        <td>{{ lesson.instructor_names|join:", " }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>{{ result.message }}</p>
+        <h2>Suggested next moves</h2>
+        <ul>
+            <li>Add more lesson blocks.</li>
+            <li>Increase instructor availability.</li>
+            <li>Relax room, teacher, or group constraints.</li>
+        </ul>
+    {% endif %}
+
+    <form method="post" action="{% url 'scheduler:run' %}">
+        {% csrf_token %}
+        <section>
+            <h2>Raw spec</h2>
+            {{ form.raw_spec }}
+        </section>
+        <p>
+            <button type="submit">Run again</button>
+            <button type="submit" formaction="{% url 'scheduler:download_spec' %}">Download spec</button>
+            <a href="{% url 'scheduler:editor' %}">Start over</a>
+        </p>
+    </form>
+{% endblock %}

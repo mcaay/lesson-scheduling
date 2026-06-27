@@ -2,4 +2,41 @@
 
 {% block content %}
     <h1>Dance Lesson Scheduler</h1>
+
+    {% if errors %}
+        <section>
+            <h2>Errors</h2>
+            <ul>
+                {% for error in errors %}
+                    <li>
+                        {% if error.message %}
+                            {% if error.line %}Line {{ error.line }}: {% endif %}{{ error.message }}
+                        {% else %}
+                            {{ error }}
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </section>
+    {% endif %}
+
+    <form method="post" action="{% url 'scheduler:run' %}">
+        {% csrf_token %}
+        <section>
+            <h2>Raw spec</h2>
+            {{ form.raw_spec }}
+        </section>
+        <p>
+            <button type="submit">Run scheduler</button>
+            <button type="submit" formaction="{% url 'scheduler:download_spec' %}">Download spec</button>
+        </p>
+    </form>
+
+    <form method="post" action="{% url 'scheduler:import_spec' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <p>
+            <input type="file" name="spec_file">
+            <button type="submit">Open spec</button>
+        </p>
+    </form>
 {% endblock %}
