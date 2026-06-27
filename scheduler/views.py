@@ -55,6 +55,14 @@ def download_spec(request):
 
 def import_spec(request):
     upload = request.FILES.get("spec_file")
-    raw_spec = upload.read().decode("utf-8") if upload else EXAMPLE_SPEC
+    try:
+        raw_spec = upload.read().decode("utf-8") if upload else EXAMPLE_SPEC
+    except UnicodeDecodeError:
+        form = RawSpecForm(initial={"raw_spec": EXAMPLE_SPEC})
+        return render(
+            request,
+            "scheduler/editor.html",
+            {"form": form, "errors": ["Upload a UTF-8 text file."]},
+        )
     form = RawSpecForm(initial={"raw_spec": raw_spec})
     return render(request, "scheduler/editor.html", {"form": form, "errors": []})
