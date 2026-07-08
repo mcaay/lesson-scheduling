@@ -3,8 +3,14 @@ def serialize_spec(spec):
     lines.extend(_lesson_block_lines(spec.lesson_blocks))
     lines.append("")
 
-    for room in spec.rooms:
-        lines.extend([f"room {room.name}", f"capacity {room.capacity}", ""])
+    for location in spec.locations:
+        lines.extend(
+            [
+                f"location {location.name}",
+                f"rooms {location.rooms_count}",
+                "",
+            ]
+        )
 
     for instructor in spec.instructors:
         lines.extend(_instructor_lines(instructor))
@@ -14,12 +20,9 @@ def serialize_spec(spec):
         lines.extend(
             [
                 f"group {group.name}",
-                f"students {group.students}",
-                f"style {group.style}",
-                f"level {group.level}",
                 f"needs {group.lessons_per_week} lesson per week",
                 f"duration {group.duration_minutes} minutes",
-                f"teachers {group.teachers_required}",
+                f"teacher roles {', '.join(group.teacher_roles)}",
                 "",
             ]
         )
@@ -36,6 +39,24 @@ def _lesson_block_lines(lesson_blocks):
 
 def _instructor_lines(instructor):
     lines = [f"instructor {instructor.name}"]
+    if instructor.roles:
+        lines.append(f"roles {', '.join(instructor.roles)}")
+    lines.append(
+        _plural_line(
+            "prefers minimum",
+            instructor.preferred_min_classes_per_week,
+            "class per week",
+            "classes per week",
+        )
+    )
+    lines.append(
+        _plural_line(
+            "prefers maximum",
+            instructor.preferred_max_classes_per_week,
+            "class per week",
+            "classes per week",
+        )
+    )
     if instructor.can_teach:
         lines.append(f"can teach {', '.join(instructor.can_teach)}")
     for availability in instructor.availability:
@@ -47,3 +68,8 @@ def _instructor_lines(instructor):
     if instructor.cannot_teach_with:
         lines.append(f"cannot teach with {', '.join(instructor.cannot_teach_with)}")
     return lines
+
+
+def _plural_line(prefix, value, singular, plural):
+    suffix = singular if value == 1 else plural
+    return f"{prefix} {value} {suffix}"

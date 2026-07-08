@@ -90,7 +90,6 @@ Monday-Thursday 19:30-20:55
 Monday-Thursday 21:00-22:25
 
 room Main Hall
-capacity 30
 
 instructor Anna
 can teach Lindy Hop beginner, Solo Jazz beginner
@@ -99,12 +98,9 @@ prefers teaching with Ivona
 cannot teach with Ana
 
 group Lindy Hop 1
-students 24
-style Lindy Hop
-level beginner
 needs 1 lesson per week
 duration 85 minutes
-teachers 2
+teacher roles leader, follower
 ```
 
 ## Scheduling Model
@@ -124,8 +120,7 @@ Hard constraints:
 - no instructor conflicts
 - no group conflicts
 - lessons must use explicit lesson blocks
-- assigned rooms must have enough capacity
-- assigned instructors must be eligible for the lesson style and level
+- assigned instructors must be eligible for the group's named course
 - assigned instructors must be available for the selected lesson block
 - two-teacher lessons must receive two instructors
 - hard instructor-pair bans must be respected
@@ -149,13 +144,12 @@ Validation should run before solving and catch deterministic problems:
 - unknown names
 - invalid days or times
 - invalid lesson block ranges
-- impossible room capacity
 - required lessons with no eligible instructor
 - required lessons with no available block
 - two-teacher requirements with too few eligible instructors
 - pair bans that make a requirement impossible
 
-If validation passes but the solver finds no complete schedule, the app should say that the inputs are individually valid but the combined constraints are too tight. It should suggest likely fixes such as adding lesson blocks, relaxing instructor availability, adding rooms, increasing room capacity, or loosening pair bans.
+If validation passes but the solver finds no complete schedule, the app should say that the inputs are individually valid but the combined constraints are too tight. It should suggest likely fixes such as adding lesson blocks, relaxing instructor availability, adding rooms, or loosening pair bans.
 
 ## Architecture
 

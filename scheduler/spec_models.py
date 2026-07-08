@@ -4,6 +4,9 @@ from dataclasses import dataclass, field
 
 DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 TIME_RE = re.compile(r"\d{2}:\d{2}")
+GROUP_INSTANCE_RE = re.compile(r"^(?P<level>.+)\s+#(?P<number>\d+)$")
+TEACHER_ROLES = ("leader", "follower", "solo")
+DEFAULT_TEACHER_ROLES = ("leader", "follower")
 
 
 def is_hhmm_time(value):
@@ -50,14 +53,17 @@ class TimeRange:
 
 
 @dataclass(frozen=True)
-class Room:
+class Location:
     name: str
-    capacity: int
+    rooms_count: int
 
 
 @dataclass(frozen=True)
 class Instructor:
     name: str
+    roles: tuple[str, ...] = DEFAULT_TEACHER_ROLES
+    preferred_min_classes_per_week: int = 1
+    preferred_max_classes_per_week: int = 3
     can_teach: tuple[str, ...] = ()
     availability: tuple[TimeRange, ...] = ()
     prefers_with: tuple[str, ...] = ()
@@ -68,16 +74,27 @@ class Instructor:
 @dataclass(frozen=True)
 class Group:
     name: str
-    students: int
-    style: str
-    level: str
     lessons_per_week: int
     duration_minutes: int
-    teachers_required: int
+    teacher_roles: tuple[str, ...] = ("leader",)
 
     @property
-    def teaching_key(self):
-        return f"{self.style} {self.level}"
+    def level_name(self):
+        match = GROUP_INSTANCE_RE.fullmatch(self.name)
+        if match:
+            return match.group("level")
+        return self.name
+
+    @property
+    def instance_number(self):
+        match = GROUP_INSTANCE_RE.fullmatch(self.name)
+        if match:
+            return int(match.group("number"))
+        return None
+
+    @property
+    def teachers_required(self):
+        return len(self.teacher_roles)
 
 
 @dataclass(frozen=True)
@@ -92,7 +109,7 @@ class LessonBlock:
 @dataclass(frozen=True)
 class ScheduleSpec:
     lesson_blocks: tuple[LessonBlock, ...] = ()
-    rooms: tuple[Room, ...] = ()
+    locations: tuple[Location, ...] = ()
     instructors: tuple[Instructor, ...] = ()
     groups: tuple[Group, ...] = ()
 
@@ -111,3 +128,7 @@ class ValidationResult:
     @property
     def is_valid(self):
         return not self.errors and self.spec is not None
+
+
+def instructor_can_teach_group(instructor, group):
+    return group.level_name in instructor.can_teach

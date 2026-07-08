@@ -14,6 +14,18 @@
         }
     }
 
+    function pushField(lines, prefix, value) {
+        if (value.trim()) {
+            lines.push(prefix + value);
+        }
+    }
+
+    function pushPluralField(lines, prefix, value, singular, pluralText) {
+        if (value.trim()) {
+            lines.push(prefix + value + plural(value, singular, pluralText));
+        }
+    }
+
     function plural(value, singular, pluralText) {
         return String(value) === "1" ? singular : pluralText;
     }
@@ -32,54 +44,69 @@
             var days = valueAt(form, "lesson_block_days", index);
             var start = valueAt(form, "lesson_block_start", index);
             var end = valueAt(form, "lesson_block_end", index);
-            pushLine(lines, days + " " + start + "-" + end);
+            if (hasAnyValue([days, start, end])) {
+                pushLine(lines, days + " " + start + "-" + end);
+            }
         });
 
-        byName(form, "room_name").forEach(function (_, index) {
-            var name = valueAt(form, "room_name", index);
-            var capacity = valueAt(form, "room_capacity", index);
-            if (!hasAnyValue([name, capacity])) {
+        byName(form, "location_name").forEach(function (_, index) {
+            var name = valueAt(form, "location_name", index);
+            var roomsCount = valueAt(form, "location_rooms_count", index);
+            if (!hasAnyValue([name, roomsCount])) {
                 return;
             }
             lines.push("");
-            pushLine(lines, "room " + name);
-            pushLine(lines, "capacity " + capacity);
+            pushLine(lines, "location " + name);
+            pushField(lines, "rooms ", roomsCount);
         });
 
         byName(form, "instructor_name").forEach(function (_, index) {
             var name = valueAt(form, "instructor_name", index);
+            var roles = valueAt(form, "instructor_roles", index);
+            var minClasses = valueAt(form, "instructor_preferred_min_classes", index);
+            var maxClasses = valueAt(form, "instructor_preferred_max_classes", index);
             var canTeach = valueAt(form, "instructor_can_teach", index);
             var available = valueAt(form, "instructor_available", index);
             var prefersWith = valueAt(form, "instructor_prefers_with", index);
-            if (!hasAnyValue([name, canTeach, available, prefersWith])) {
+            var avoidsWith = valueAt(form, "instructor_avoids_with", index);
+            var cannotTeachWith = valueAt(form, "instructor_cannot_teach_with", index);
+            var hasInstructorContent = hasAnyValue([
+                name,
+                roles,
+                canTeach,
+                available,
+                prefersWith,
+                avoidsWith,
+                cannotTeachWith
+            ]) || (minClasses && minClasses !== "1") || (maxClasses && maxClasses !== "3");
+            if (!hasInstructorContent) {
                 return;
             }
             lines.push("");
             pushLine(lines, "instructor " + name);
-            pushLine(lines, "can teach " + canTeach);
-            pushLine(lines, "available " + available);
-            pushLine(lines, "prefers teaching with " + prefersWith);
+            pushField(lines, "roles ", roles);
+            pushPluralField(lines, "prefers minimum ", minClasses, " class per week", " classes per week");
+            pushPluralField(lines, "prefers maximum ", maxClasses, " class per week", " classes per week");
+            pushField(lines, "can teach ", canTeach);
+            pushField(lines, "available ", available);
+            pushField(lines, "prefers teaching with ", prefersWith);
+            pushField(lines, "avoids teaching with ", avoidsWith);
+            pushField(lines, "cannot teach with ", cannotTeachWith);
         });
 
         byName(form, "group_name").forEach(function (_, index) {
             var name = valueAt(form, "group_name", index);
-            var students = valueAt(form, "group_students", index);
-            var style = valueAt(form, "group_style", index);
-            var level = valueAt(form, "group_level", index);
             var lessons = valueAt(form, "group_lessons_per_week", index);
             var duration = valueAt(form, "group_duration_minutes", index);
-            var teachers = valueAt(form, "group_teachers", index);
-            if (!hasAnyValue([name, students, style, level, lessons, duration, teachers])) {
+            var teacherRoles = valueAt(form, "group_teacher_roles", index);
+            if (!hasAnyValue([name, lessons, duration, teacherRoles])) {
                 return;
             }
             lines.push("");
             pushLine(lines, "group " + name);
-            pushLine(lines, "students " + students);
-            pushLine(lines, "style " + style);
-            pushLine(lines, "level " + level);
-            pushLine(lines, "needs " + lessons + plural(lessons, " lesson per week", " lessons per week"));
-            pushLine(lines, "duration " + duration + plural(duration, " minute", " minutes"));
-            pushLine(lines, "teachers " + teachers);
+            pushPluralField(lines, "needs ", lessons, " lesson per week", " lessons per week");
+            pushPluralField(lines, "duration ", duration, " minute", " minutes");
+            pushField(lines, "teacher roles ", teacherRoles);
         });
 
         return lines.join("\n") + "\n";
@@ -100,9 +127,9 @@
     }
 
     function addRow(kind, scope) {
-        var root = scope || document;
-        var template = root.querySelector("[data-" + kind + "-template]");
-        var rows = root.querySelector("[data-" + kind + "-rows]");
+        var documentScope = scope || document;
+        var template = documentScope.querySelector("[data-" + kind + "-template]");
+        var rows = documentScope.querySelector("[data-" + kind + "-rows]");
 
         if (!template || !rows) {
             return false;
@@ -112,34 +139,96 @@
         return true;
     }
 
-    function installEditor() {
-        var form = document.querySelector("[data-spec-form]");
-        var toggle = document.querySelector("[data-raw-spec-toggle]");
-        var panel = document.querySelector("[data-raw-spec-panel]");
-        var rawSpec = document.querySelector("[data-raw-spec-input]");
-        var rawSpecDirty = false;
-        var formDirty = false;
+    function removeRow(button) {
+        var row = button.closest("[data-row]");
+        if (!row) {
+            return false;
+        }
+        row.remove();
+        return true;
+    }
 
-        if (!form || !toggle || !panel || !rawSpec) {
+    function setStatus(status, rawSpecDirty) {
+        if (!status) {
+            return;
+        }
+        status.textContent = rawSpecDirty
+            ? "Raw spec edited manually. GUI changes will not overwrite it."
+            : "Raw spec follows GUI changes.";
+    }
+
+    function installTabs(scope) {
+        if (!scope.querySelectorAll) {
             return;
         }
 
-        var initialGeneratedSpec = buildSpec(form);
+        var tabButtons = Array.from(scope.querySelectorAll("[data-editor-tab]"));
+        var panels = Array.from(scope.querySelectorAll("[data-tab-panel]"));
 
-        toggle.addEventListener("click", function () {
-            var isHidden = panel.hasAttribute("hidden");
-            if (isHidden) {
-                panel.removeAttribute("hidden");
-                toggle.textContent = "Hide raw spec";
-            } else {
-                panel.setAttribute("hidden", "");
-                toggle.textContent = "Show raw spec";
-            }
+        function activateTab(name) {
+            tabButtons.forEach(function (button) {
+                var isActive = button.getAttribute("data-editor-tab") === name;
+                button.classList.toggle("is-active", isActive);
+                button.setAttribute("aria-selected", isActive ? "true" : "false");
+            });
+
+            panels.forEach(function (panel) {
+                var isActive = panel.getAttribute("data-tab-panel") === name;
+                if (isActive) {
+                    panel.removeAttribute("hidden");
+                } else {
+                    panel.setAttribute("hidden", "");
+                }
+            });
+        }
+
+        tabButtons.forEach(function (button) {
+            button.addEventListener("click", function () {
+                activateTab(button.getAttribute("data-editor-tab"));
+            });
         });
+    }
+
+    function installEditor(documentScope) {
+        var scope = documentScope || document;
+        var form = scope.querySelector("[data-spec-form]");
+        var rawSpec = scope.querySelector("[data-raw-spec-input]");
+        var status = scope.querySelector("[data-raw-spec-status]");
+        var rawSpecDirty = false;
+        var formDirty = false;
+
+        if (!form || !rawSpec) {
+            return;
+        }
+
+        installTabs(scope);
+
+        function syncRawSpec() {
+            if (!rawSpecDirty) {
+                rawSpec.value = buildSpec(form);
+            }
+            setStatus(status, rawSpecDirty);
+        }
+
+        rawSpec.value = rawSpec.value.trim() ? rawSpec.value : buildSpec(form);
+        var initialGeneratedSpec = buildSpec(form);
+        setStatus(status, rawSpecDirty);
 
         rawSpec.addEventListener("input", function () {
             rawSpecDirty = true;
+            setStatus(status, rawSpecDirty);
         });
+
+        function handleGuiChange(event) {
+            if (event.target === rawSpec) {
+                return;
+            }
+            formDirty = true;
+            syncRawSpec();
+        }
+
+        form.addEventListener("input", handleGuiChange);
+        form.addEventListener("change", handleGuiChange);
 
         Array.from(form.querySelectorAll("input, select, textarea")).forEach(function (field) {
             if (field === rawSpec) {
@@ -147,9 +236,11 @@
             }
             field.addEventListener("input", function () {
                 formDirty = true;
+                syncRawSpec();
             });
             field.addEventListener("change", function () {
                 formDirty = true;
+                syncRawSpec();
             });
         });
 
@@ -157,8 +248,25 @@
             button.addEventListener("click", function () {
                 if (addRow(button.getAttribute("data-add-row"), form)) {
                     formDirty = true;
+                    syncRawSpec();
                 }
             });
+        });
+
+        form.addEventListener("click", function (event) {
+            var button = null;
+            if (event.target && event.target.matches && event.target.matches("[data-remove-row]")) {
+                button = event.target;
+            } else if (event.target && event.target.closest) {
+                button = event.target.closest("[data-remove-row]");
+            }
+            if (!button) {
+                return;
+            }
+            if (removeRow(button)) {
+                formDirty = true;
+                syncRawSpec();
+            }
         });
 
         form.addEventListener("submit", function () {
@@ -171,10 +279,14 @@
     root.ScheduleEditor = {
         addRow: addRow,
         buildSpec: buildSpec,
+        installEditor: installEditor,
+        removeRow: removeRow,
         shouldBuildSpec: shouldBuildSpec
     };
 
     if (typeof document !== "undefined") {
-        document.addEventListener("DOMContentLoaded", installEditor);
+        document.addEventListener("DOMContentLoaded", function () {
+            installEditor(document);
+        });
     }
 }(typeof window !== "undefined" ? window : globalThis));

@@ -1,16 +1,39 @@
 from itertools import combinations
 
-from scheduler.spec_models import SpecError, to_slot
+from scheduler.spec_models import (
+    TEACHER_ROLES,
+    SpecError,
+    instructor_can_teach_group,
+    to_slot,
+)
 
 
 def validate_spec(spec):
     errors = []
 
-    if not spec.rooms:
-        return [SpecError(None, "At least one room is required")]
+    if not spec.locations:
+        return [SpecError(None, "At least one location is required")]
+
+    for location in spec.locations:
+        if location.rooms_count < 1:
+            errors.append(
+                SpecError(None, f"Location {location.name} must have at least one room")
+            )
 
     instructor_names = {instructor.name for instructor in spec.instructors}
     for instructor in spec.instructors:
+        if (
+            instructor.preferred_min_classes_per_week
+            > instructor.preferred_max_classes_per_week
+        ):
+            errors.append(
+                SpecError(
+                    None,
+                    f"Instructor {instructor.name} preferred minimum classes per week "
+                    "cannot be higher than preferred maximum",
+                )
+            )
+
         for referenced_name in _referenced_instructor_names(instructor):
             if referenced_name not in instructor_names:
                 errors.append(
@@ -25,40 +48,43 @@ def validate_spec(spec):
         eligible_instructors = [
             instructor
             for instructor in spec.instructors
-            if group.teaching_key in instructor.can_teach
+            if instructor_can_teach_group(instructor, group)
+            and instructor.preferred_max_classes_per_week > 0
         ]
-
-        if all(room.capacity < group.students for room in spec.rooms):
-            errors.append(
-                SpecError(
-                    None,
-                    f"Group {group.name} has {group.students} students, "
-                    "but no room can hold that many",
-                )
-            )
 
         if group.teachers_required not in {1, 2}:
             errors.append(
                 SpecError(
                     None,
-                    f"Group {group.name} must require 1 or 2 teachers",
+                    f"Group {group.name} must require one or two teacher roles",
                 )
             )
             continue
 
-        if len(eligible_instructors) < group.teachers_required:
+        invalid_roles = [
+            role for role in group.teacher_roles if role not in TEACHER_ROLES
+        ]
+        if invalid_roles:
             errors.append(
-                _too_few_eligible_instructors_error(group, len(eligible_instructors))
+                SpecError(
+                    None,
+                    f"Group {group.name} uses unsupported teacher role {invalid_roles[0]}",
+                )
             )
             continue
 
-        if group.teachers_required == 2 and not _has_allowed_pair(
-            eligible_instructors
+        missing_role = _first_missing_role(group, eligible_instructors)
+        if missing_role:
+            errors.append(_missing_role_error(group, missing_role))
+            continue
+
+        if group.teachers_required == 2 and not _has_allowed_role_pair(
+            eligible_instructors, group.teacher_roles
         ):
             errors.append(
                 SpecError(
                     None,
-                    f"Group {group.name} needs two teachers, but every eligible pair is banned",
+                    f"Group {group.name} needs two teachers, but every eligible role pair is banned",
                 )
             )
             continue
@@ -85,30 +111,30 @@ def _referenced_instructor_names(instructor):
     )
 
 
-def _too_few_eligible_instructors_error(group, eligible_count):
-    if group.teachers_required == 1:
-        return SpecError(
-            None,
-            f"Group {group.name} has no eligible instructors for {group.teaching_key}",
-        )
+def _first_missing_role(group, eligible_instructors):
+    for role in group.teacher_roles:
+        if not any(role in instructor.roles for instructor in eligible_instructors):
+            return role
+    return None
 
-    instructor_text = (
-        "eligible instructor is available"
-        if eligible_count == 1
-        else "eligible instructors are available"
-    )
+
+def _missing_role_error(group, role):
     return SpecError(
         None,
-        f"Group {group.name} needs {group.teachers_required} teachers, "
-        f"but only {eligible_count} {instructor_text}",
+        f"Group {group.name} needs a {role} teacher, but none are eligible",
     )
 
 
-def _has_allowed_pair(instructors):
-    return any(
-        not _pair_is_banned(first, second)
-        for first, second in combinations(instructors, 2)
-    )
+def _has_allowed_role_pair(instructors, roles):
+    first_role, second_role = roles
+    for first, second in combinations(instructors, 2):
+        if _pair_is_banned(first, second):
+            continue
+        if first_role in first.roles and second_role in second.roles:
+            return True
+        if first_role in second.roles and second_role in first.roles:
+            return True
+    return False
 
 
 def _pair_is_banned(first, second):
@@ -128,10 +154,14 @@ def _has_matching_lesson_block(lesson_blocks, group, eligible_instructors):
             for instructor in eligible_instructors
             if _instructor_covers_block(instructor, lesson_block)
         ]
-        if group.teachers_required == 1 and available_instructors:
+        if group.teachers_required == 1 and _first_missing_role(
+            group, available_instructors
+        ) is None:
             return True
 
-        if group.teachers_required == 2 and _has_allowed_pair(available_instructors):
+        if group.teachers_required == 2 and _has_allowed_role_pair(
+            available_instructors, group.teacher_roles
+        ):
             return True
 
     return False

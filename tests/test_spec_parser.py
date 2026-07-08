@@ -7,10 +7,73 @@ def test_parse_example_spec():
 
     assert result.is_valid
     assert len(result.spec.lesson_blocks) == 12
-    assert [room.name for room in result.spec.rooms] == ["Main Hall", "Small Studio"]
-    assert [instructor.name for instructor in result.spec.instructors] == ["Anna", "Ivona"]
-    assert result.spec.groups[0].name == "Lindy Hop 1"
-    assert result.spec.groups[0].duration_minutes == 85
+    assert [
+        (location.name, location.rooms_count)
+        for location in result.spec.locations
+    ] == [
+        ("Swing Studio", 2),
+        ("Jazz Loft", 1),
+    ]
+    assert [instructor.name for instructor in result.spec.instructors] == [
+        "Ania",
+        "Mateusz",
+        "Marysia",
+        "Rafał",
+    ]
+    assert [instructor.roles for instructor in result.spec.instructors] == [
+        ("follower",),
+        ("leader",),
+        ("follower", "solo"),
+        ("leader",),
+    ]
+    assert result.spec.instructors[0].preferred_min_classes_per_week == 1
+    assert result.spec.instructors[0].preferred_max_classes_per_week == 3
+    assert [instructor.prefers_with for instructor in result.spec.instructors] == [
+        ("Mateusz",),
+        ("Ania",),
+        ("Rafał",),
+        ("Marysia",),
+    ]
+    assert [group.name for group in result.spec.groups] == [
+        "LH1",
+        "LH2",
+        "LH3",
+        "Charleston 1",
+        "Balboa 1",
+        "Solo Jazz",
+    ]
+    assert {group.duration_minutes for group in result.spec.groups} == {85}
+    assert {group.lessons_per_week for group in result.spec.groups} == {1}
+    assert [group.teacher_roles for group in result.spec.groups] == [
+        ("leader", "follower"),
+        ("leader", "follower"),
+        ("leader", "follower"),
+        ("leader", "follower"),
+        ("leader", "follower"),
+        ("solo",),
+    ]
+
+
+def test_parse_instructor_class_preferences():
+    result = parse_spec(
+        """instructor Anna
+prefers minimum 0 classes per week
+prefers maximum 2 classes per week
+"""
+    )
+
+    assert result.is_valid
+    assert result.spec.instructors[0].preferred_min_classes_per_week == 0
+    assert result.spec.instructors[0].preferred_max_classes_per_week == 2
+
+
+def test_parse_instructor_class_preferences_default_to_one_and_three():
+    result = parse_spec("instructor Anna")
+
+    assert result.is_valid
+    assert result.spec.instructors[0].roles == ("leader", "follower")
+    assert result.spec.instructors[0].preferred_min_classes_per_week == 1
+    assert result.spec.instructors[0].preferred_max_classes_per_week == 3
 
 
 def test_parse_reports_unknown_line_with_number():
@@ -21,21 +84,63 @@ def test_parse_reports_unknown_line_with_number():
     assert result.errors[0].message == "Unknown line: nonsense"
 
 
-def test_parse_reports_missing_capacity():
-    result = parse_spec("room Main Hall")
+def test_parse_accepts_location_with_room_count():
+    result = parse_spec("location Main Hall\nrooms 3")
 
-    assert not result.is_valid
-    assert result.errors[0].line == 1
-    assert result.errors[0].message == "Room Main Hall is missing capacity"
+    assert result.is_valid
+    assert result.spec.locations[0].name == "Main Hall"
+    assert result.spec.locations[0].rooms_count == 3
 
 
-def test_parse_reports_missing_group_field():
-    result = parse_spec("group Lindy Hop 1\nstudents 24")
+def test_parse_reports_missing_location_rooms():
+    result = parse_spec("location Main Hall")
 
     assert not result.is_valid
     assert result.spec is None
     assert result.errors[0].line == 1
-    assert result.errors[0].message == "Group Lindy Hop 1 is missing style"
+    assert result.errors[0].message == "Location Main Hall is missing rooms"
+
+
+def test_parse_reports_missing_group_field():
+    result = parse_spec("group Lindy Hop 1\nneeds 1 lesson per week")
+
+    assert not result.is_valid
+    assert result.spec is None
+    assert result.errors[0].line == 1
+    assert result.errors[0].message == "Group Lindy Hop 1 is missing duration"
+
+
+def test_parse_rejects_removed_group_fields():
+    result = parse_spec(
+        """group Lindy Hop 1
+style Lindy Hop
+level beginner
+needs 1 lesson per week
+duration 85 minutes
+teachers 2
+"""
+    )
+
+    assert not result.is_valid
+    assert result.spec is None
+    assert result.errors[0].line == 2
+    assert result.errors[0].message == "Unknown line: style Lindy Hop"
+
+
+def test_parse_rejects_students_line():
+    result = parse_spec(
+        """group Lindy Hop 1
+students 24
+needs 1 lesson per week
+duration 85 minutes
+teacher roles leader, follower
+"""
+    )
+
+    assert not result.is_valid
+    assert result.spec is None
+    assert result.errors[0].line == 2
+    assert result.errors[0].message == "Unknown line: students 24"
 
 
 def test_parse_reports_invalid_day_without_crashing():
@@ -109,10 +214,19 @@ def test_parse_rejects_time_with_three_digit_minutes():
     assert result.errors[0].message == "Invalid lesson block: Monday 18:000-19:00"
 
 
-def test_parse_invalid_capacity_has_single_clear_error():
-    result = parse_spec("room Main Hall\ncapacity nope")
+def test_parse_rejects_removed_room_line():
+    result = parse_spec("room Main Hall")
 
     assert not result.is_valid
-    assert len(result.errors) == 1
-    assert result.errors[0].line == 2
-    assert result.errors[0].message == "Capacity must be a whole number: nope"
+    assert result.spec is None
+    assert result.errors[0].line == 1
+    assert result.errors[0].message == "Unknown line: room Main Hall"
+
+
+def test_parse_rejects_capacity_line_on_location():
+    result = parse_spec("location Main Hall\nrooms 1\ncapacity nope")
+
+    assert not result.is_valid
+    assert result.spec is None
+    assert result.errors[0].line == 3
+    assert result.errors[0].message == "Unknown line: capacity nope"

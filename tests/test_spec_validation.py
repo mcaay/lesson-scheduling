@@ -3,6 +3,35 @@ from scheduler.spec_parser import parse_spec
 from scheduler.spec_validation import validate_spec
 
 
+TWO_TEACHER_SPEC = """lesson blocks
+Monday 18:00-19:25
+
+location Swing Studio
+rooms 1
+
+instructor Ania
+roles follower
+prefers minimum 1 class per week
+prefers maximum 3 classes per week
+can teach LH1
+available Monday 17:00-22:30
+prefers teaching with Mateusz
+
+instructor Mateusz
+roles leader
+prefers minimum 1 class per week
+prefers maximum 3 classes per week
+can teach LH1
+available Monday 17:00-22:30
+prefers teaching with Ania
+
+group LH1
+needs 1 lesson per week
+duration 85 minutes
+teacher roles leader, follower
+"""
+
+
 def test_validation_accepts_example_spec():
     result = parse_spec(EXAMPLE_SPEC)
 
@@ -11,132 +40,164 @@ def test_validation_accepts_example_spec():
     assert errors == []
 
 
-def test_validation_rejects_group_too_large_for_all_rooms():
-    text = EXAMPLE_SPEC.replace("students 24", "students 99")
-    result = parse_spec(text)
-
-    errors = validate_spec(result.spec)
-
-    assert (
-        errors[0].message
-        == "Group Lindy Hop 1 has 99 students, but no room can hold that many"
-    )
-
-
 def test_validation_reports_no_eligible_instructors_for_two_teacher_group():
-    text = EXAMPLE_SPEC.replace(
-        "can teach Lindy Hop beginner, Solo Jazz beginner",
-        "can teach Solo Jazz beginner",
-    ).replace(
-        "instructor Ivona\ncan teach Lindy Hop beginner",
-        "instructor Ivona\ncan teach Solo Jazz beginner",
-    )
+    text = TWO_TEACHER_SPEC.replace("can teach LH1", "can teach Solo Jazz")
     result = parse_spec(text)
 
     errors = validate_spec(result.spec)
 
-    assert (
-        errors[0].message
-        == "Group Lindy Hop 1 needs 2 teachers, but only 0 eligible instructors are available"
-    )
+    assert errors[0].message == "Group LH1 needs a leader teacher, but none are eligible"
 
 
 def test_validation_reports_too_few_eligible_instructors_for_two_teacher_group():
-    text = EXAMPLE_SPEC.replace(
-        "instructor Ivona\ncan teach Lindy Hop beginner",
-        "instructor Ivona\ncan teach Solo Jazz beginner",
-    )
+    text = TWO_TEACHER_SPEC.replace("can teach LH1", "can teach Solo Jazz", 1)
     result = parse_spec(text)
 
     errors = validate_spec(result.spec)
 
     assert (
         errors[0].message
-        == "Group Lindy Hop 1 needs 2 teachers, but only 1 eligible instructor is available"
+        == "Group LH1 needs a follower teacher, but none are eligible"
     )
 
 
 def test_validation_rejects_two_teacher_group_with_pair_ban():
-    text = EXAMPLE_SPEC.replace("prefers teaching with Ivona", "cannot teach with Ivona")
+    text = TWO_TEACHER_SPEC.replace(
+        "prefers teaching with Mateusz", "cannot teach with Mateusz"
+    )
     result = parse_spec(text)
 
     errors = validate_spec(result.spec)
 
     assert (
         errors[0].message
-        == "Group Lindy Hop 1 needs two teachers, but every eligible pair is banned"
+        == "Group LH1 needs two teachers, but every eligible role pair is banned"
     )
 
 
 def test_validation_rejects_unknown_instructor_in_pair_reference():
-    text = EXAMPLE_SPEC.replace("prefers teaching with Ivona", "cannot teach with Iwona")
+    text = TWO_TEACHER_SPEC.replace(
+        "prefers teaching with Mateusz", "cannot teach with Iwona"
+    )
     result = parse_spec(text)
 
     errors = validate_spec(result.spec)
 
-    assert errors[0].message == "Instructor Anna references unknown instructor Iwona"
+    assert errors[0].message == "Instructor Ania references unknown instructor Iwona"
+
+
+def test_validation_rejects_instructor_minimum_higher_than_maximum():
+    text = TWO_TEACHER_SPEC.replace(
+        "prefers minimum 1 class per week",
+        "prefers minimum 4 classes per week",
+        1,
+    )
+    result = parse_spec(text)
+
+    errors = validate_spec(result.spec)
+
+    assert (
+        errors[0].message
+        == "Instructor Ania preferred minimum classes per week cannot be higher than preferred maximum"
+    )
+
+
+def test_validation_treats_zero_maximum_as_not_available_for_assignments():
+    text = TWO_TEACHER_SPEC.replace(
+        "prefers minimum 1 class per week\nprefers maximum 3 classes per week",
+        "prefers minimum 0 classes per week\nprefers maximum 0 classes per week",
+        1,
+    )
+    result = parse_spec(text)
+
+    errors = validate_spec(result.spec)
+
+    assert (
+        errors[0].message
+        == "Group LH1 needs a follower teacher, but none are eligible"
+    )
 
 
 def test_validation_pair_ban_error_does_not_add_duration_error():
-    text = EXAMPLE_SPEC.replace("prefers teaching with Ivona", "cannot teach with Ivona")
+    text = TWO_TEACHER_SPEC.replace(
+        "prefers teaching with Mateusz", "cannot teach with Mateusz"
+    )
     result = parse_spec(text)
 
     errors = validate_spec(result.spec)
 
     assert [error.message for error in errors] == [
-        "Group Lindy Hop 1 needs two teachers, but every eligible pair is banned"
+        "Group LH1 needs two teachers, but every eligible role pair is banned"
     ]
 
 
 def test_validation_reports_no_eligible_instructor_for_one_teacher_group():
-    text = EXAMPLE_SPEC.replace("teachers 2", "teachers 1")
-    text = text.replace(
-        "can teach Lindy Hop beginner, Solo Jazz beginner", "can teach Solo Jazz beginner"
-    )
-    text = text.replace("can teach Lindy Hop beginner", "can teach Solo Jazz beginner")
+    text = TWO_TEACHER_SPEC.replace("teacher roles leader, follower", "teacher roles leader")
+    text = text.replace("can teach LH1", "can teach Solo Jazz")
     result = parse_spec(text)
 
     errors = validate_spec(result.spec)
 
-    assert (
-        errors[0].message
-        == "Group Lindy Hop 1 has no eligible instructors for Lindy Hop beginner"
+    assert errors[0].message == "Group LH1 needs a leader teacher, but none are eligible"
+
+
+def test_validation_rejects_unsupported_teacher_roles():
+    text = TWO_TEACHER_SPEC.replace(
+        "teacher roles leader, follower",
+        "teacher roles leader, follower, assistant",
     )
-
-
-def test_validation_rejects_unsupported_teacher_count():
-    text = EXAMPLE_SPEC.replace("teachers 2", "teachers 3")
     result = parse_spec(text)
 
     errors = validate_spec(result.spec)
 
-    assert errors[0].message == "Group Lindy Hop 1 must require 1 or 2 teachers"
+    assert errors[0].message == "Group LH1 must require one or two teacher roles"
 
 
 def test_validation_rejects_available_pair_when_pair_is_banned():
-    text = EXAMPLE_SPEC + """
+    text = TWO_TEACHER_SPEC + """
 instructor Solo
-can teach Lindy Hop beginner
+can teach LH1
 available Friday 18:00-19:25
 """
-    text = text.replace("prefers teaching with Ivona", "cannot teach with Ivona")
+    text = text.replace("prefers teaching with Mateusz", "cannot teach with Mateusz")
     result = parse_spec(text)
 
     errors = validate_spec(result.spec)
 
     assert (
         errors[0].message
-        == "Group Lindy Hop 1 has no lesson block that matches duration and instructor availability"
+        == "Group LH1 has no lesson block that matches duration and instructor availability"
     )
 
 
 def test_validation_rejects_no_matching_duration_block():
-    text = EXAMPLE_SPEC.replace("duration 85 minutes", "duration 60 minutes")
+    text = TWO_TEACHER_SPEC.replace("duration 85 minutes", "duration 60 minutes")
     result = parse_spec(text)
 
     errors = validate_spec(result.spec)
 
     assert (
         errors[0].message
-        == "Group Lindy Hop 1 has no lesson block that matches duration and instructor availability"
+        == "Group LH1 has no lesson block that matches duration and instructor availability"
     )
+
+
+def test_validation_rejects_missing_follower_role():
+    text = TWO_TEACHER_SPEC.replace("roles follower", "roles leader")
+    result = parse_spec(text)
+
+    errors = validate_spec(result.spec)
+
+    assert (
+        errors[0].message
+        == "Group LH1 needs a follower teacher, but none are eligible"
+    )
+
+
+def test_validation_rejects_location_without_rooms():
+    text = TWO_TEACHER_SPEC.replace("rooms 1", "rooms 0")
+    result = parse_spec(text)
+
+    errors = validate_spec(result.spec)
+
+    assert errors[0].message == "Location Swing Studio must have at least one room"

@@ -3,7 +3,7 @@ from scheduler.spec_models import (
     Group,
     Instructor,
     LessonBlock,
-    Room,
+    Location,
     ScheduleSpec,
     SpecError,
     TimeRange,
@@ -13,12 +13,9 @@ from scheduler.spec_models import (
 
 
 GROUP_REQUIRED = (
-    ("students", "students"),
-    ("style", "style"),
-    ("level", "level"),
     ("lessons_per_week", "lessons per week"),
     ("duration_minutes", "duration"),
-    ("teachers_required", "teachers"),
+    ("teacher_roles", "teacher roles"),
 )
 
 
@@ -28,7 +25,7 @@ INVALID_NUMBER = object()
 def parse_spec(text):
     errors = []
     lesson_blocks = []
-    rooms = []
+    locations = []
     instructors = []
     groups = []
     section = None
@@ -37,18 +34,27 @@ def parse_spec(text):
     def finish_item():
         nonlocal item
 
-        if section == "room" and item is not None:
-            if item["capacity"] is None:
+        if section == "location" and item is not None:
+            if item["rooms_count"] is None:
                 errors.append(
-                    SpecError(item["line"], f"Room {item['name']} is missing capacity")
+                    SpecError(item["line"], f"Location {item['name']} is missing rooms")
                 )
-            elif item["capacity"] is not INVALID_NUMBER:
-                rooms.append(Room(name=item["name"], capacity=item["capacity"]))
+            elif item["rooms_count"] is not INVALID_NUMBER:
+                locations.append(
+                    Location(name=item["name"], rooms_count=item["rooms_count"])
+                )
 
         if section == "instructor" and item is not None:
             instructors.append(
                 Instructor(
                     name=item["name"],
+                    roles=tuple(item["roles"]),
+                    preferred_min_classes_per_week=item[
+                        "preferred_min_classes_per_week"
+                    ],
+                    preferred_max_classes_per_week=item[
+                        "preferred_max_classes_per_week"
+                    ],
                     can_teach=tuple(item["can_teach"]),
                     availability=tuple(item["availability"]),
                     prefers_with=tuple(item["prefers_with"]),
@@ -60,7 +66,11 @@ def parse_spec(text):
         if section == "group" and item is not None:
             missing = [label for field, label in GROUP_REQUIRED if item[field] is None]
             has_invalid_number = any(
-                item[field] is INVALID_NUMBER for field, _ in GROUP_REQUIRED
+                item[field] is INVALID_NUMBER
+                for field in (
+                    "lessons_per_week",
+                    "duration_minutes",
+                )
             )
             for field in missing:
                 errors.append(
@@ -70,12 +80,9 @@ def parse_spec(text):
                 groups.append(
                     Group(
                         name=item["name"],
-                        students=item["students"],
-                        style=item["style"],
-                        level=item["level"],
                         lessons_per_week=item["lessons_per_week"],
                         duration_minutes=item["duration_minutes"],
-                        teachers_required=item["teachers_required"],
+                        teacher_roles=tuple(item["teacher_roles"]),
                     )
                 )
 
@@ -91,13 +98,13 @@ def parse_spec(text):
             section = "lesson_blocks"
             continue
 
-        if line.startswith("room "):
+        if line.startswith("location "):
             finish_item()
-            section = "room"
+            section = "location"
             item = {
                 "line": line_number,
-                "name": line.removeprefix("room ").strip(),
-                "capacity": None,
+                "name": line.removeprefix("location ").strip(),
+                "rooms_count": None,
             }
             continue
 
@@ -107,6 +114,9 @@ def parse_spec(text):
             item = {
                 "line": line_number,
                 "name": line.removeprefix("instructor ").strip(),
+                "roles": ("leader", "follower"),
+                "preferred_min_classes_per_week": 1,
+                "preferred_max_classes_per_week": 3,
                 "can_teach": (),
                 "availability": [],
                 "prefers_with": (),
@@ -121,19 +131,16 @@ def parse_spec(text):
             item = {
                 "line": line_number,
                 "name": line.removeprefix("group ").strip(),
-                "students": None,
-                "style": None,
-                "level": None,
                 "lessons_per_week": None,
                 "duration_minutes": None,
-                "teachers_required": None,
+                "teacher_roles": None,
             }
             continue
 
         if section == "lesson_blocks":
             add_ranges(lesson_blocks, line, line_number, errors, LessonBlock)
-        elif section == "room" and item is not None:
-            parse_room_field(item, line, line_number, errors)
+        elif section == "location" and item is not None:
+            parse_location_field(item, line, line_number, errors)
         elif section == "instructor" and item is not None:
             parse_instructor_field(item, line, line_number, errors)
         elif section == "group" and item is not None:
@@ -147,24 +154,49 @@ def parse_spec(text):
 
     spec = ScheduleSpec(
         lesson_blocks=tuple(lesson_blocks),
-        rooms=tuple(rooms),
+        locations=tuple(locations),
         instructors=tuple(instructors),
         groups=tuple(groups),
     )
     return ValidationResult(spec=spec, errors=tuple(errors))
 
 
-def parse_room_field(room, line, line_number, errors):
-    if line.startswith("capacity "):
-        room["capacity"] = parse_int(
-            line.removeprefix("capacity "), line_number, errors, "Capacity"
+def parse_location_field(location, line, line_number, errors):
+    if line.startswith("rooms "):
+        location["rooms_count"] = parse_int(
+            line.removeprefix("rooms "),
+            line_number,
+            errors,
+            "Rooms",
         )
     else:
         errors.append(SpecError(line_number, f"Unknown line: {line}"))
 
 
 def parse_instructor_field(instructor, line, line_number, errors):
-    if line.startswith("can teach "):
+    if line.startswith("roles "):
+        instructor["roles"] = parse_list(line.removeprefix("roles "))
+    elif line.startswith("prefers minimum "):
+        parse_instructor_int(
+            instructor,
+            "preferred_min_classes_per_week",
+            line,
+            line_number,
+            errors,
+            "prefers minimum ",
+            "Preferred minimum classes per week",
+        )
+    elif line.startswith("prefers maximum "):
+        parse_instructor_int(
+            instructor,
+            "preferred_max_classes_per_week",
+            line,
+            line_number,
+            errors,
+            "prefers maximum ",
+            "Preferred maximum classes per week",
+        )
+    elif line.startswith("can teach "):
         instructor["can_teach"] = parse_list(line.removeprefix("can teach "))
     elif line.startswith("available "):
         add_ranges(
@@ -189,16 +221,19 @@ def parse_instructor_field(instructor, line, line_number, errors):
         errors.append(SpecError(line_number, f"Unknown line: {line}"))
 
 
+def parse_instructor_int(instructor, field, line, line_number, errors, prefix, label):
+    value = strip_suffix(
+        line.removeprefix(prefix),
+        (" class per week", " classes per week"),
+    )
+    if value is None:
+        errors.append(SpecError(line_number, f"Unknown line: {line}"))
+    else:
+        instructor[field] = parse_int(value, line_number, errors, label)
+
+
 def parse_group_field(group, line, line_number, errors):
-    if line.startswith("students "):
-        group["students"] = parse_int(
-            line.removeprefix("students "), line_number, errors, "Students"
-        )
-    elif line.startswith("style "):
-        group["style"] = line.removeprefix("style ").strip()
-    elif line.startswith("level "):
-        group["level"] = line.removeprefix("level ").strip()
-    elif line.startswith("needs "):
+    if line.startswith("needs "):
         parse_group_int(
             group,
             "lessons_per_week",
@@ -220,10 +255,8 @@ def parse_group_field(group, line, line_number, errors):
             (" minute", " minutes"),
             "Duration",
         )
-    elif line.startswith("teachers "):
-        group["teachers_required"] = parse_int(
-            line.removeprefix("teachers "), line_number, errors, "Teachers"
-        )
+    elif line.startswith("teacher roles "):
+        group["teacher_roles"] = parse_list(line.removeprefix("teacher roles "))
     else:
         errors.append(SpecError(line_number, f"Unknown line: {line}"))
 

@@ -14,7 +14,6 @@ def run_app_js(script):
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
-const __ROOT__ = {json.dumps(str(ROOT))};
 
 const context = {{
     console: console,
@@ -38,14 +37,35 @@ function assert(condition, message) {{
     }}
 }}
 
+function element(value) {{
+    return {{
+        value: value || "",
+        textContent: "",
+        listeners: {{}},
+        addEventListener: function (eventName, callback) {{
+            this.listeners[eventName] = callback;
+        }},
+        hasAttribute: function (name) {{
+            return !!this[name];
+        }},
+        removeAttribute: function (name) {{
+            this[name] = false;
+        }},
+        setAttribute: function (name) {{
+            this[name] = true;
+        }}
+    }};
+}}
+
 function formFromFields(fields) {{
     return {{
         querySelectorAll: function (selector) {{
+            if (selector === "input, select, textarea") {{
+                return Object.values(fields).flat();
+            }}
             const match = selector.match(/^\\[name="(.+)"\\]$/);
             const name = match ? match[1] : "";
-            return (fields[name] || []).map(function (value) {{
-                return {{value: value}};
-            }});
+            return fields[name] || [];
         }}
     }};
 }}
@@ -62,72 +82,61 @@ function formFromFields(fields) {{
     assert result.returncode == 0, result.stderr + result.stdout
 
 
-def test_editor_javascript_builds_spec_and_preserves_imported_raw_spec():
+def test_editor_javascript_builds_role_aware_spec_without_group_style_or_level():
     run_app_js(
         """
-assert(ScheduleEditor, "ScheduleEditor API is missing");
-
 const form = formFromFields({
-    lesson_block_days: ["Monday-Thursday", "Monday-Thursday", "Monday-Thursday"],
-    lesson_block_start: ["18:00", "19:30", "21:00"],
-    lesson_block_end: ["19:25", "20:55", "22:25"],
-    room_name: ["Main Hall", "Small Studio"],
-    room_capacity: ["30", "16"],
-    instructor_name: ["Anna", "Ivona"],
-    instructor_can_teach: ["Lindy Hop beginner, Solo Jazz beginner", "Lindy Hop beginner"],
-    instructor_available: ["Monday-Thursday 17:00-22:30", "Monday-Thursday 17:00-22:30"],
-    instructor_prefers_with: ["Ivona", "Anna"],
-    group_name: ["Lindy Hop 1"],
-    group_students: ["24"],
-    group_style: ["Lindy Hop"],
-    group_level: ["beginner"],
-    group_lessons_per_week: ["1"],
-    group_duration_minutes: ["85"],
-    group_teachers: ["2"]
+    lesson_block_days: [element("Monday-Thursday"), element("Monday-Thursday")],
+    lesson_block_start: [element("18:00"), element("19:30")],
+    lesson_block_end: [element("19:25"), element("20:55")],
+    location_name: [element("Main Hall"), element("Small Studio")],
+    location_rooms_count: [element("2"), element("1")],
+    instructor_name: [element("Anna"), element("Ivona")],
+    instructor_roles: [element("leader"), element("follower")],
+    instructor_preferred_min_classes: [element("1"), element("1")],
+    instructor_preferred_max_classes: [element("3"), element("3")],
+    instructor_can_teach: [element("Lindy Hop beginner"), element("Lindy Hop beginner")],
+    instructor_available: [element("Monday-Thursday 17:00-22:30"), element("Monday-Thursday 17:00-22:30")],
+    instructor_prefers_with: [element("Ivona"), element("Anna")],
+    instructor_avoids_with: [element(""), element("")],
+    instructor_cannot_teach_with: [element("Ana"), element("")],
+    group_name: [element("Lindy Hop beginner #1")],
+    group_lessons_per_week: [element("1")],
+    group_duration_minutes: [element("85")],
+    group_teacher_roles: [element("leader, follower")]
 });
 
 const generated = ScheduleEditor.buildSpec(form);
-assert(generated.includes("room Small Studio"), "generated spec should include the second room");
-assert(generated.includes("group Lindy Hop 1"), "generated spec should include the default group");
 
-const generatedWithEmptyRows = ScheduleEditor.buildSpec(formFromFields({
-    lesson_block_days: ["Monday"],
-    lesson_block_start: ["18:00"],
-    lesson_block_end: ["19:00"],
-    room_name: ["Main Hall", ""],
-    room_capacity: ["30", ""],
-    instructor_name: ["Anna", ""],
-    instructor_can_teach: ["Lindy Hop beginner", ""],
-    instructor_available: ["Monday 17:00-22:00", ""],
-    instructor_prefers_with: ["Ivona", ""],
-    group_name: ["Lindy Hop 1", ""],
-    group_students: ["24", ""],
-    group_style: ["Lindy Hop", ""],
-    group_level: ["beginner", ""],
-    group_lessons_per_week: ["1", ""],
-    group_duration_minutes: ["85", ""],
-    group_teachers: ["2", ""]
-}));
-assert(
-    generatedWithEmptyRows.indexOf("room \\n") === -1,
-    "empty room rows should not be emitted"
-);
-assert(
-    generatedWithEmptyRows.indexOf("instructor \\n") === -1,
-    "empty instructor rows should not be emitted"
-);
-assert(
-    generatedWithEmptyRows.indexOf("group \\n") === -1,
-    "empty group rows should not be emitted"
-);
+assert(generated.includes("Monday-Thursday 18:00-19:25"), "lesson block should be emitted");
+assert(generated.includes("location Small Studio"), "second location should be emitted");
+assert(generated.includes("rooms 2"), "location room count should be emitted");
+assert(!generated.includes("\\ncapacity "), "room capacity must not be emitted");
+assert(!generated.includes("\\nstudents "), "student count must not be emitted");
+assert(generated.includes("roles leader"), "leader role should be emitted");
+assert(generated.includes("roles follower"), "follower role should be emitted");
+assert(generated.includes("prefers minimum 1 class per week"), "minimum class preference should be emitted");
+assert(generated.includes("prefers maximum 3 classes per week"), "maximum class preference should be emitted");
+assert(generated.includes("cannot teach with Ana"), "hard pair constraints should be emitted");
+assert(generated.includes("group Lindy Hop beginner #1"), "group name should carry course information");
+assert(generated.includes("teacher roles leader, follower"), "group teacher roles should be emitted");
+assert(!generated.includes("\\nstyle "), "group style must not be emitted");
+assert(!generated.includes("\\nlevel "), "group level must not be emitted");
+assert(!generated.includes("\\nteachers "), "teacher count must not be emitted");
+"""
+    )
 
+
+def test_editor_javascript_supports_lesson_block_add_and_empty_row_skipping():
+    run_app_js(
+        """
 let insertedHtml = "";
-const added = ScheduleEditor.addRow("room", {
+const added = ScheduleEditor.addRow("lesson-block", {
     querySelector: function (selector) {
-        if (selector === "[data-room-template]") {
-            return {innerHTML: "<div>new room</div>"};
+        if (selector === "[data-lesson-block-template]") {
+            return {innerHTML: "<div>new block</div>"};
         }
-        if (selector === "[data-room-rows]") {
+        if (selector === "[data-lesson-block-rows]") {
             return {
                 insertAdjacentHTML: function (position, html) {
                     insertedHtml = position + ":" + html;
@@ -137,150 +146,104 @@ const added = ScheduleEditor.addRow("room", {
         return null;
     }
 });
-assert(added === true, "addRow should report when a row was added");
-assert(
-    insertedHtml === "beforeend:<div>new room</div>",
-    "addRow should append the template HTML to the row container"
-);
+assert(added === true, "lesson block rows should be addable");
+assert(insertedHtml === "beforeend:<div>new block</div>", "lesson block template should append");
 
-const imported = "lesson blocks\\nFriday 18:00-19:25\\n\\nroom Imported Room\\ncapacity 10\\n";
-assert(
-    ScheduleEditor.shouldBuildSpec(generated, generated, false, false) === true,
-    "matching default raw spec can be regenerated"
-);
-assert(
-    ScheduleEditor.shouldBuildSpec(imported, generated, false, false) === false,
-    "imported raw spec should be preserved when visible fields were not changed"
-);
-assert(
-    ScheduleEditor.shouldBuildSpec(imported, generated, false, true) === true,
-    "visible field edits should opt into rebuilding the spec"
-);
-assert(
-    ScheduleEditor.shouldBuildSpec(imported, generated, true, true) === false,
-    "manual raw spec edits should remain authoritative"
-);
+const generated = ScheduleEditor.buildSpec(formFromFields({
+    lesson_block_days: [element("Monday"), element("")],
+    lesson_block_start: [element("18:00"), element("")],
+    lesson_block_end: [element("19:00"), element("")],
+    location_name: [element("Main Hall"), element("")],
+    location_rooms_count: [element("1"), element("")],
+    instructor_name: [element("Anna"), element("")],
+    instructor_roles: [element("leader"), element("")],
+    instructor_preferred_min_classes: [element("1"), element("")],
+    instructor_preferred_max_classes: [element("3"), element("")],
+    instructor_can_teach: [element("Lindy Hop beginner"), element("")],
+    instructor_available: [element("Monday 17:00-22:00"), element("")],
+    instructor_prefers_with: [element(""), element("")],
+    instructor_avoids_with: [element(""), element("")],
+    instructor_cannot_teach_with: [element(""), element("")],
+    group_name: [element("Lindy Hop beginner #1"), element("")],
+    group_lessons_per_week: [element("1"), element("")],
+    group_duration_minutes: [element("85"), element("")],
+    group_teacher_roles: [element("leader"), element("")]
+}));
+assert(!generated.includes("location \\n"), "empty location rows should not be emitted");
+assert(!generated.includes("instructor \\n"), "empty instructor rows should not be emitted");
+assert(!generated.includes("prefers teaching with\\n"), "empty preference lines should not be emitted");
+assert(!generated.includes("avoids teaching with\\n"), "empty avoid lines should not be emitted");
+assert(!generated.includes("cannot teach with\\n"), "empty hard constraint lines should not be emitted");
+assert(!generated.includes("group \\n"), "empty group rows should not be emitted");
 """
     )
 
 
-def test_editor_submit_handler_updates_raw_spec_only_when_it_should():
+def test_editor_javascript_live_syncs_gui_changes_until_raw_spec_is_edited():
     run_app_js(
         """
-const generated = ScheduleEditor.buildSpec(formFromFields({
-    lesson_block_days: ["Monday-Thursday", "Monday-Thursday", "Monday-Thursday"],
-    lesson_block_start: ["18:00", "19:30", "21:00"],
-    lesson_block_end: ["19:25", "20:55", "22:25"],
-    room_name: ["Main Hall", "Small Studio"],
-    room_capacity: ["30", "16"],
-    instructor_name: ["Anna", "Ivona"],
-    instructor_can_teach: ["Lindy Hop beginner, Solo Jazz beginner", "Lindy Hop beginner"],
-    instructor_available: ["Monday-Thursday 17:00-22:30", "Monday-Thursday 17:00-22:30"],
-    instructor_prefers_with: ["Ivona", "Anna"],
-    group_name: ["Lindy Hop 1"],
-    group_students: ["24"],
-    group_style: ["Lindy Hop"],
-    group_level: ["beginner"],
-    group_lessons_per_week: ["1"],
-    group_duration_minutes: ["85"],
-    group_teachers: ["2"]
-}));
-
-function makeElement(initialValue) {
-    return {
-        value: initialValue || "",
-        listeners: {},
-        addEventListener: function (eventName, callback) {
-            this.listeners[eventName] = callback;
-        },
-        hasAttribute: function () {
-            return true;
-        },
-        removeAttribute: function () {},
-        setAttribute: function () {}
-    };
-}
-
-function installWithRawSpec(rawText) {
-    const elements = {
-        lesson_block_days: [makeElement("Monday-Thursday"), makeElement("Monday-Thursday"), makeElement("Monday-Thursday")],
-        lesson_block_start: [makeElement("18:00"), makeElement("19:30"), makeElement("21:00")],
-        lesson_block_end: [makeElement("19:25"), makeElement("20:55"), makeElement("22:25")],
-        room_name: [makeElement("Main Hall"), makeElement("Small Studio")],
-        room_capacity: [makeElement("30"), makeElement("16")],
-        instructor_name: [makeElement("Anna"), makeElement("Ivona")],
-        instructor_can_teach: [makeElement("Lindy Hop beginner, Solo Jazz beginner"), makeElement("Lindy Hop beginner")],
-        instructor_available: [makeElement("Monday-Thursday 17:00-22:30"), makeElement("Monday-Thursday 17:00-22:30")],
-        instructor_prefers_with: [makeElement("Ivona"), makeElement("Anna")],
-        group_name: [makeElement("Lindy Hop 1")],
-        group_students: [makeElement("24")],
-        group_style: [makeElement("Lindy Hop")],
-        group_level: [makeElement("beginner")],
-        group_lessons_per_week: [makeElement("1")],
-        group_duration_minutes: [makeElement("85")],
-        group_teachers: [makeElement("2")]
-    };
-    const rawSpec = makeElement(rawText);
-    const toggle = makeElement("");
-    const panel = makeElement("");
-    const form = {
-        listeners: {},
-        addEventListener: function (eventName, callback) {
-            this.listeners[eventName] = callback;
-        },
-        querySelectorAll: function (selector) {
-            if (selector === "input, select, textarea") {
-                return Object.values(elements).flat().concat([rawSpec]);
-            }
-            const match = selector.match(/^\\[name="(.+)"\\]$/);
-            return match ? elements[match[1]] || [] : [];
-        }
-    };
-
-    context.document.querySelector = function (selector) {
-        if (selector === "[data-spec-form]") {
-            return form;
-        }
-        if (selector === "[data-raw-spec-toggle]") {
-            return toggle;
-        }
-        if (selector === "[data-raw-spec-panel]") {
-            return panel;
-        }
-        if (selector === "[data-raw-spec-input]") {
-            return rawSpec;
-        }
+const fields = {
+    lesson_block_days: [element("Monday")],
+    lesson_block_start: [element("18:00")],
+    lesson_block_end: [element("19:00")],
+    location_name: [element("Main Hall")],
+    location_rooms_count: [element("1")],
+    instructor_name: [element("Anna")],
+    instructor_roles: [element("leader")],
+    instructor_preferred_min_classes: [element("1")],
+    instructor_preferred_max_classes: [element("3")],
+    instructor_can_teach: [element("Lindy Hop beginner")],
+    instructor_available: [element("Monday 17:00-22:00")],
+    instructor_prefers_with: [element("")],
+    instructor_avoids_with: [element("")],
+    instructor_cannot_teach_with: [element("")],
+    group_name: [element("Lindy Hop beginner #1")],
+    group_lessons_per_week: [element("1")],
+    group_duration_minutes: [element("60")],
+    group_teacher_roles: [element("leader")]
+};
+const rawSpec = element("");
+const rawStatus = element("");
+const toggle = element("");
+const panel = element("");
+const form = formFromFields(fields);
+form.listeners = {};
+form.addEventListener = function (eventName, callback) {
+    this.listeners[eventName] = callback;
+};
+form.querySelectorAll = function (selector) {
+    if (selector === "input, select, textarea") {
+        return Object.values(fields).flat().concat([rawSpec]);
+    }
+    if (selector === "[data-add-row]") {
+        return [];
+    }
+    const match = selector.match(/^\\[name="(.+)"\\]$/);
+    return match ? fields[match[1]] || [] : [];
+};
+const fakeDocument = {
+    querySelector: function (selector) {
+        if (selector === "[data-spec-form]") return form;
+        if (selector === "[data-raw-spec-toggle]") return toggle;
+        if (selector === "[data-raw-spec-panel]") return panel;
+        if (selector === "[data-raw-spec-input]") return rawSpec;
+        if (selector === "[data-raw-spec-status]") return rawStatus;
         return null;
-    };
-    capturedDOMContentLoaded();
-    return {form, rawSpec, elements};
-}
-
-let capturedDOMContentLoaded = null;
-context.document.addEventListener = function (eventName, callback) {
-    if (eventName === "DOMContentLoaded") {
-        capturedDOMContentLoaded = callback;
     }
 };
-vm.runInContext(
-    fs.readFileSync(path.join(__ROOT__, "scheduler/static/scheduler/app.js"), "utf8"),
-    context
-);
 
-let installed = installWithRawSpec("lesson blocks\\nFriday 18:00-19:25\\n\\nroom Imported Room\\ncapacity 10\\n");
-installed.form.listeners.submit();
-assert(
-    installed.rawSpec.value.includes("Imported Room"),
-    "submit should preserve imported raw spec when visible fields did not change"
-);
+ScheduleEditor.installEditor(fakeDocument);
+assert(rawSpec.value.includes("location Main Hall"), "initial raw spec should be generated from GUI");
 
-installed = installWithRawSpec(generated);
-installed.elements.room_name[0].value = "Big Hall";
-installed.elements.room_name[0].listeners.input();
-installed.form.listeners.submit();
-assert(
-    installed.rawSpec.value.includes("room Big Hall"),
-    "submit should rebuild raw spec after visible field edits"
-);
+fields.location_name[0].value = "Big Hall";
+fields.location_name[0].listeners.input({target: fields.location_name[0]});
+assert(rawSpec.value.includes("location Big Hall"), "GUI edits should immediately update raw spec");
+
+rawSpec.value = "manual spec";
+rawSpec.listeners.input({target: rawSpec});
+fields.location_name[0].value = "Small Hall";
+fields.location_name[0].listeners.input({target: fields.location_name[0]});
+assert(rawSpec.value === "manual spec", "manual raw spec edits should be authoritative");
+assert(rawStatus.textContent.includes("Raw spec edited manually"), "manual mode should be visible");
 """
     )

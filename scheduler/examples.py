@@ -3,27 +3,71 @@ Monday-Thursday 18:00-19:25
 Monday-Thursday 19:30-20:55
 Monday-Thursday 21:00-22:25
 
-room Main Hall
-capacity 30
+location Swing Studio
+rooms 2
 
-room Small Studio
-capacity 16
+location Jazz Loft
+rooms 1
 
-instructor Anna
-can teach Lindy Hop beginner, Solo Jazz beginner
+instructor Ania
+roles follower
+prefers minimum 1 class per week
+prefers maximum 3 classes per week
+can teach LH1, LH2, LH3, Charleston 1, Charleston 2
 available Monday-Thursday 17:00-22:30
-prefers teaching with Ivona
+prefers teaching with Mateusz
 
-instructor Ivona
-can teach Lindy Hop beginner
+instructor Mateusz
+roles leader
+prefers minimum 1 class per week
+prefers maximum 3 classes per week
+can teach LH1, LH2, LH3, Charleston 1, Charleston 2
 available Monday-Thursday 17:00-22:30
-prefers teaching with Anna
+prefers teaching with Ania
 
-group Lindy Hop 1
-students 24
-style Lindy Hop
-level beginner
+instructor Marysia
+roles follower, solo
+prefers minimum 1 class per week
+prefers maximum 3 classes per week
+can teach LH1, LH2, LH3, Balboa 1, Balboa 2, Solo Jazz
+available Monday-Thursday 17:00-22:30
+prefers teaching with Rafał
+
+instructor Rafał
+roles leader
+prefers minimum 1 class per week
+prefers maximum 3 classes per week
+can teach LH1, LH2, LH3, Balboa 1, Balboa 2
+available Monday-Thursday 17:00-22:30
+prefers teaching with Marysia
+
+group LH1
 needs 1 lesson per week
 duration 85 minutes
-teachers 2
+teacher roles leader, follower
+
+group LH2
+needs 1 lesson per week
+duration 85 minutes
+teacher roles leader, follower
+
+group LH3
+needs 1 lesson per week
+duration 85 minutes
+teacher roles leader, follower
+
+group Charleston 1
+needs 1 lesson per week
+duration 85 minutes
+teacher roles leader, follower
+
+group Balboa 1
+needs 1 lesson per week
+duration 85 minutes
+teacher roles leader, follower
+
+group Solo Jazz
+needs 1 lesson per week
+duration 85 minutes
+teacher roles solo
 """

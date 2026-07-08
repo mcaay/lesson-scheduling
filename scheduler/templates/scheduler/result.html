@@ -4,35 +4,52 @@
     <h1>Generated schedule</h1>
 
     {% if result.solved %}
-        <table>
-            <thead>
-                <tr>
-                    <th>Day</th>
-                    <th>Time</th>
-                    <th>Group</th>
-                    <th>Room</th>
-                    <th>Instructors</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for lesson in result.lessons %}
+        <section class="schedule-grid" aria-label="Generated schedule">
+            <table class="schedule-table">
+                <thead>
                     <tr>
-                        <td>{{ lesson.day }}</td>
-                        <td>{{ lesson.start }}-{{ lesson.end }}</td>
-                        <td>{{ lesson.group_name }}</td>
-                        <td>{{ lesson.room_name }}</td>
-                        <td>{{ lesson.instructor_names|join:", " }}</td>
+                        <th class="schedule-corner" scope="col" rowspan="2">Time</th>
+                        {% for day in result_grid.days %}
+                            <th class="schedule-day-heading" scope="colgroup" colspan="{{ result_grid.room_slots|length }}">{{ day.name }}</th>
+                        {% endfor %}
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                    <tr>
+                        {% for day in result_grid.days %}
+                            {% for room_slot in result_grid.room_slots %}
+                                <th class="schedule-room-heading" scope="col">{{ room_slot.name }}</th>
+                            {% endfor %}
+                        {% endfor %}
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for row in result_grid.rows %}
+                        <tr>
+                            <th class="schedule-time" scope="row">{{ row.time }}</th>
+                            {% for day in row.days %}
+                                {% for room_slot in day.room_slots %}
+                                    <td class="schedule-cell">
+                                        {% if room_slot.lesson %}
+                                            <article class="lesson-card">
+                                                <h3>{{ room_slot.lesson.group_name }}</h3>
+                                                <p>{{ room_slot.lesson.instructor_names|join:", " }}</p>
+                                            </article>
+                                        {% endif %}
+                                    </td>
+                                {% endfor %}
+                            {% endfor %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
     {% else %}
         <p>{{ result.message }}</p>
         <h2>Suggested next moves</h2>
         <ul>
             <li>Add more lesson blocks.</li>
             <li>Increase instructor availability.</li>
-            <li>Relax room, teacher, or group constraints.</li>
+            <li>Relax location, teacher, or group constraints.</li>
         </ul>
     {% endif %}
 
@@ -44,8 +61,8 @@
         </section>
         <p>
             <button type="submit">Run again</button>
-            <button type="submit" formaction="{% url 'scheduler:download_spec' %}">Download spec</button>
-            <a href="{% url 'scheduler:editor' %}">Start over</a>
+            <button type="submit" formaction="{% url 'scheduler:download_spec' %}">Save work</button>
+            <button type="submit" formaction="{% url 'scheduler:editor' %}">Back to editor</button>
         </p>
     </form>
 {% endblock %}

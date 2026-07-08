@@ -5,13 +5,6 @@
         <div>
             <h1>Dance Lesson Scheduler</h1>
         </div>
-
-        <form class="upload-form" method="post" action="{% url 'scheduler:import_spec' %}" enctype="multipart/form-data">
-            {% csrf_token %}
-            <label for="spec_file">Open spec</label>
-            <input id="spec_file" type="file" name="spec_file">
-            <button type="submit">Upload</button>
-        </form>
     </header>
 
     {% if errors %}
@@ -31,245 +24,291 @@
         </section>
     {% endif %}
 
-    <nav class="section-nav" aria-label="Editor sections">
-        <a href="#lesson-blocks">Lesson blocks</a>
-        <a href="#rooms">Rooms</a>
-        <a href="#instructors">Instructors</a>
-        <a href="#groups">Groups</a>
-        <a href="#raw-spec">Raw spec</a>
-    </nav>
-
-    <form class="editor-form" method="post" action="{% url 'scheduler:run' %}" data-spec-form>
+    <form id="import-spec-form" method="post" action="{% url 'scheduler:import_spec' %}" enctype="multipart/form-data">
         {% csrf_token %}
-
-        <section id="lesson-blocks" class="editor-section">
-            <h2>Lesson blocks</h2>
-            <div class="field-grid lesson-block-grid">
-                <label>
-                    Days
-                    <input type="text" name="lesson_block_days" value="Monday-Thursday">
-                </label>
-                <label>
-                    Starts
-                    <input type="time" name="lesson_block_start" value="18:00">
-                </label>
-                <label>
-                    Ends
-                    <input type="time" name="lesson_block_end" value="19:25">
-                </label>
-            </div>
-            <div class="field-grid lesson-block-grid">
-                <label>
-                    Days
-                    <input type="text" name="lesson_block_days" value="Monday-Thursday">
-                </label>
-                <label>
-                    Starts
-                    <input type="time" name="lesson_block_start" value="19:30">
-                </label>
-                <label>
-                    Ends
-                    <input type="time" name="lesson_block_end" value="20:55">
-                </label>
-            </div>
-            <div class="field-grid lesson-block-grid">
-                <label>
-                    Days
-                    <input type="text" name="lesson_block_days" value="Monday-Thursday">
-                </label>
-                <label>
-                    Starts
-                    <input type="time" name="lesson_block_start" value="21:00">
-                </label>
-                <label>
-                    Ends
-                    <input type="time" name="lesson_block_end" value="22:25">
-                </label>
-            </div>
-        </section>
-
-        <section id="rooms" class="editor-section">
-            <h2>Rooms</h2>
-            <div data-room-rows>
-                <div class="field-grid two-column">
-                    <label>
-                        Room name
-                        <input type="text" name="room_name" value="Main Hall">
-                    </label>
-                    <label>
-                        Capacity
-                        <input type="number" name="room_capacity" min="1" value="30">
-                    </label>
-                </div>
-                <div class="field-grid two-column">
-                    <label>
-                        Room name
-                        <input type="text" name="room_name" value="Small Studio">
-                    </label>
-                    <label>
-                        Capacity
-                        <input type="number" name="room_capacity" min="1" value="16">
-                    </label>
-                </div>
-            </div>
-            <button type="button" class="secondary-button" data-add-row="room">Add room</button>
-            <template data-room-template>
-                <div class="field-grid two-column">
-                    <label>
-                        Room name
-                        <input type="text" name="room_name" value="">
-                    </label>
-                    <label>
-                        Capacity
-                        <input type="number" name="room_capacity" min="1" value="">
-                    </label>
-                </div>
-            </template>
-        </section>
-
-        <section id="instructors" class="editor-section">
-            <h2>Instructors</h2>
-            <div data-instructor-rows>
-                <div class="stacked-fields">
-                    <label>
-                        Instructor name
-                        <input type="text" name="instructor_name" value="Anna">
-                    </label>
-                    <label>
-                        Can teach
-                        <input type="text" name="instructor_can_teach" value="Lindy Hop beginner, Solo Jazz beginner">
-                    </label>
-                    <label>
-                        Available
-                        <input type="text" name="instructor_available" value="Monday-Thursday 17:00-22:30">
-                    </label>
-                    <label>
-                        Prefers teaching with
-                        <input type="text" name="instructor_prefers_with" value="Ivona">
-                    </label>
-                </div>
-                <div class="stacked-fields">
-                    <label>
-                        Instructor name
-                        <input type="text" name="instructor_name" value="Ivona">
-                    </label>
-                    <label>
-                        Can teach
-                        <input type="text" name="instructor_can_teach" value="Lindy Hop beginner">
-                    </label>
-                    <label>
-                        Available
-                        <input type="text" name="instructor_available" value="Monday-Thursday 17:00-22:30">
-                    </label>
-                    <label>
-                        Prefers teaching with
-                        <input type="text" name="instructor_prefers_with" value="Anna">
-                    </label>
-                </div>
-            </div>
-            <button type="button" class="secondary-button" data-add-row="instructor">Add instructor</button>
-            <template data-instructor-template>
-                <div class="stacked-fields">
-                    <label>
-                        Instructor name
-                        <input type="text" name="instructor_name" value="">
-                    </label>
-                    <label>
-                        Can teach
-                        <input type="text" name="instructor_can_teach" value="">
-                    </label>
-                    <label>
-                        Available
-                        <input type="text" name="instructor_available" value="">
-                    </label>
-                    <label>
-                        Prefers teaching with
-                        <input type="text" name="instructor_prefers_with" value="">
-                    </label>
-                </div>
-            </template>
-        </section>
-
-        <section id="groups" class="editor-section">
-            <h2>Groups</h2>
-            <div data-group-rows>
-                <div class="field-grid group-grid">
-                    <label>
-                        Group name
-                        <input type="text" name="group_name" value="Lindy Hop 1">
-                    </label>
-                    <label>
-                        Students
-                        <input type="number" name="group_students" min="1" value="24">
-                    </label>
-                    <label>
-                        Style
-                        <input type="text" name="group_style" value="Lindy Hop">
-                    </label>
-                    <label>
-                        Level
-                        <input type="text" name="group_level" value="beginner">
-                    </label>
-                    <label>
-                        Lessons per week
-                        <input type="number" name="group_lessons_per_week" min="1" value="1">
-                    </label>
-                    <label>
-                        Duration minutes
-                        <input type="number" name="group_duration_minutes" min="1" value="85">
-                    </label>
-                    <label>
-                        Teachers
-                        <input type="number" name="group_teachers" min="1" value="2">
-                    </label>
-                </div>
-            </div>
-            <button type="button" class="secondary-button" data-add-row="group">Add group</button>
-            <template data-group-template>
-                <div class="field-grid group-grid">
-                    <label>
-                        Group name
-                        <input type="text" name="group_name" value="">
-                    </label>
-                    <label>
-                        Students
-                        <input type="number" name="group_students" min="1" value="">
-                    </label>
-                    <label>
-                        Style
-                        <input type="text" name="group_style" value="">
-                    </label>
-                    <label>
-                        Level
-                        <input type="text" name="group_level" value="">
-                    </label>
-                    <label>
-                        Lessons per week
-                        <input type="number" name="group_lessons_per_week" min="1" value="">
-                    </label>
-                    <label>
-                        Duration minutes
-                        <input type="number" name="group_duration_minutes" min="1" value="">
-                    </label>
-                    <label>
-                        Teachers
-                        <input type="number" name="group_teachers" min="1" value="">
-                    </label>
-                </div>
-            </template>
-        </section>
-
-        <section id="raw-spec" class="editor-section">
-            <h2>Raw spec</h2>
-            <button type="button" class="secondary-button" data-raw-spec-toggle>Show raw spec</button>
-            <div class="raw-spec-panel" data-raw-spec-panel hidden>
-                <textarea name="raw_spec" data-raw-spec-input>{{ form.raw_spec.value|default_if_none:"" }}</textarea>
-            </div>
-        </section>
-
-        <div class="form-actions">
-            <button type="submit">Run scheduler</button>
-            <button type="submit" formaction="{% url 'scheduler:download_spec' %}">Download spec</button>
-        </div>
     </form>
+
+    <div class="editor-layout">
+        <nav class="section-nav" aria-label="Editor sections">
+            <a href="#lesson-blocks">Lesson blocks</a>
+            <a href="#locations">Locations</a>
+            <a href="#instructors">Instructors</a>
+            <a href="#groups">Groups</a>
+        </nav>
+
+        <form class="editor-form" method="post" action="{% url 'scheduler:run' %}" data-spec-form>
+            {% csrf_token %}
+
+            <div class="editor-tabs" role="tablist" aria-label="Editor mode">
+                <button type="button" class="tab-button is-active" role="tab" aria-selected="true" aria-controls="parameters-panel" data-editor-tab="parameters">Parameters</button>
+                <button type="button" class="tab-button" role="tab" aria-selected="false" aria-controls="raw-spec-panel" data-editor-tab="raw-spec">Raw specification</button>
+            </div>
+
+            <div id="parameters-panel" class="tab-panel" role="tabpanel" data-tab-panel="parameters">
+                <section id="lesson-blocks" class="editor-section">
+                    <div class="section-heading">
+                        <h2>Lesson blocks</h2>
+                        <button type="button" class="secondary-button" data-add-row="lesson-block">Add lesson block</button>
+                    </div>
+                    <div class="row-list" data-lesson-block-rows>
+                        {% for block in editor.lesson_blocks %}
+                        <div class="editor-row" data-row>
+                            <div class="field-grid lesson-block-grid">
+                                <label>
+                                    Days
+                                    <input type="text" name="lesson_block_days" value="{{ block.days }}">
+                                </label>
+                                <label>
+                                    Starts
+                                    <input type="time" name="lesson_block_start" value="{{ block.start }}">
+                                </label>
+                                <label>
+                                    Ends
+                                    <input type="time" name="lesson_block_end" value="{{ block.end }}">
+                                </label>
+                                {% include "scheduler/_remove_button.html" %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <template data-lesson-block-template>
+                        <div class="editor-row" data-row>
+                            <div class="field-grid lesson-block-grid">
+                                <label>
+                                    Days
+                                    <input type="text" name="lesson_block_days" value="Monday">
+                                </label>
+                                <label>
+                                    Starts
+                                    <input type="time" name="lesson_block_start" value="">
+                                </label>
+                                <label>
+                                    Ends
+                                    <input type="time" name="lesson_block_end" value="">
+                                </label>
+                                {% include "scheduler/_remove_button.html" %}
+                            </div>
+                        </div>
+                    </template>
+                </section>
+
+                <section id="locations" class="editor-section">
+                    <div class="section-heading">
+                        <h2>Locations</h2>
+                        <button type="button" class="secondary-button" data-add-row="location">Add location</button>
+                    </div>
+                    <div class="row-list" data-location-rows>
+                        {% for location in editor.locations %}
+                        <div class="editor-row" data-row>
+                            <div class="field-grid location-grid">
+                                <label>
+                                    Location name
+                                    <input type="text" name="location_name" value="{{ location.name }}">
+                                </label>
+                                <label>
+                                    Number of rooms
+                                    <input type="number" name="location_rooms_count" min="1" value="{{ location.rooms_count }}">
+                                </label>
+                                {% include "scheduler/_remove_button.html" %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <template data-location-template>
+                        <div class="editor-row" data-row>
+                            <div class="field-grid location-grid">
+                                <label>
+                                    Location name
+                                    <input type="text" name="location_name" value="">
+                                </label>
+                                <label>
+                                    Number of rooms
+                                    <input type="number" name="location_rooms_count" min="1" value="1">
+                                </label>
+                                {% include "scheduler/_remove_button.html" %}
+                            </div>
+                        </div>
+                    </template>
+                </section>
+
+                <section id="instructors" class="editor-section">
+                    <div class="section-heading">
+                        <h2>Instructors</h2>
+                        <button type="button" class="secondary-button" data-add-row="instructor">Add instructor</button>
+                    </div>
+                    <div class="row-list" data-instructor-rows>
+                        {% for instructor in editor.instructors %}
+                        <div class="editor-row instructor-row" data-row>
+                            <div class="row-actions">
+                                {% include "scheduler/_remove_button.html" %}
+                            </div>
+                            <div class="field-grid instructor-grid">
+                                <label>
+                                    Instructor name
+                                    <input type="text" name="instructor_name" value="{{ instructor.name }}">
+                                </label>
+                                <label>
+                                    Roles
+                                    <input type="text" name="instructor_roles" value="{{ instructor.roles }}">
+                                </label>
+                                <label>
+                                    Preferred min classes
+                                    <input type="number" name="instructor_preferred_min_classes" min="0" value="{{ instructor.preferred_min_classes_per_week }}">
+                                </label>
+                                <label>
+                                    Preferred max classes
+                                    <input type="number" name="instructor_preferred_max_classes" min="0" value="{{ instructor.preferred_max_classes_per_week }}">
+                                </label>
+                                <label>
+                                    Can teach levels
+                                    <input type="text" name="instructor_can_teach" value="{{ instructor.can_teach }}">
+                                </label>
+                                <label>
+                                    Available
+                                    <input type="text" name="instructor_available" value="{{ instructor.available }}">
+                                </label>
+                                <label>
+                                    Prefers teaching with
+                                    <input type="text" name="instructor_prefers_with" value="{{ instructor.prefers_with }}">
+                                </label>
+                                <label>
+                                    Avoids teaching with
+                                    <input type="text" name="instructor_avoids_with" value="{{ instructor.avoids_with }}">
+                                </label>
+                                <label>
+                                    Cannot teach with
+                                    <input type="text" name="instructor_cannot_teach_with" value="{{ instructor.cannot_teach_with }}">
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <template data-instructor-template>
+                        <div class="editor-row instructor-row" data-row>
+                            <div class="row-actions">
+                                {% include "scheduler/_remove_button.html" %}
+                            </div>
+                            <div class="field-grid instructor-grid">
+                                <label>
+                                    Instructor name
+                                    <input type="text" name="instructor_name" value="">
+                                </label>
+                                <label>
+                                    Roles
+                                    <input type="text" name="instructor_roles" value="">
+                                </label>
+                                <label>
+                                    Preferred min classes
+                                    <input type="number" name="instructor_preferred_min_classes" min="0" value="1">
+                                </label>
+                                <label>
+                                    Preferred max classes
+                                    <input type="number" name="instructor_preferred_max_classes" min="0" value="3">
+                                </label>
+                                <label>
+                                    Can teach levels
+                                    <input type="text" name="instructor_can_teach" value="">
+                                </label>
+                                <label>
+                                    Available
+                                    <input type="text" name="instructor_available" value="">
+                                </label>
+                                <label>
+                                    Prefers teaching with
+                                    <input type="text" name="instructor_prefers_with" value="">
+                                </label>
+                                <label>
+                                    Avoids teaching with
+                                    <input type="text" name="instructor_avoids_with" value="">
+                                </label>
+                                <label>
+                                    Cannot teach with
+                                    <input type="text" name="instructor_cannot_teach_with" value="">
+                                </label>
+                            </div>
+                        </div>
+                    </template>
+                </section>
+
+                <section id="groups" class="editor-section">
+                    <div class="section-heading">
+                        <h2>Groups</h2>
+                        <button type="button" class="secondary-button" data-add-row="group">Add group</button>
+                    </div>
+                    <div class="row-list" data-group-rows>
+                        {% for group in editor.groups %}
+                        <div class="editor-row" data-row>
+                            <div class="field-grid group-grid">
+                                <label>
+                                    Group name
+                                    <input type="text" name="group_name" value="{{ group.name }}">
+                                </label>
+                                <label>
+                                    Lessons per week
+                                    <input type="number" name="group_lessons_per_week" min="1" value="{{ group.lessons_per_week }}">
+                                </label>
+                                <label>
+                                    Duration minutes
+                                    <input type="number" name="group_duration_minutes" min="1" value="{{ group.duration_minutes }}">
+                                </label>
+                                <label>
+                                    Teacher roles needed
+                                    <input type="text" name="group_teacher_roles" value="{{ group.teacher_roles }}">
+                                </label>
+                                {% include "scheduler/_remove_button.html" %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <template data-group-template>
+                        <div class="editor-row" data-row>
+                            <div class="field-grid group-grid">
+                                <label>
+                                    Group name
+                                    <input type="text" name="group_name" value="">
+                                </label>
+                                <label>
+                                    Lessons per week
+                                    <input type="number" name="group_lessons_per_week" min="1" value="">
+                                </label>
+                                <label>
+                                    Duration minutes
+                                    <input type="number" name="group_duration_minutes" min="1" value="">
+                                </label>
+                                <label>
+                                    Teacher roles needed
+                                    <input type="text" name="group_teacher_roles" value="">
+                                </label>
+                                {% include "scheduler/_remove_button.html" %}
+                            </div>
+                        </div>
+                    </template>
+                </section>
+            </div>
+
+            <div id="raw-spec-panel" class="tab-panel" role="tabpanel" data-tab-panel="raw-spec" hidden>
+                <section id="raw-spec" class="editor-section raw-editor-section">
+                    <div class="section-heading">
+                        <h2>Raw specification</h2>
+                        <p class="raw-spec-status" data-raw-spec-status>Raw spec follows GUI changes.</p>
+                    </div>
+
+                    <div class="raw-tools">
+                        <label class="file-picker" for="spec_file">
+                            Open spec
+                            <input id="spec_file" form="import-spec-form" type="file" name="spec_file">
+                        </label>
+                        <button type="submit" form="import-spec-form" class="secondary-button">Upload</button>
+                    </div>
+
+                    <textarea name="raw_spec" data-raw-spec-input>{{ form.raw_spec.value|default_if_none:"" }}</textarea>
+                </section>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit">Run scheduler</button>
+                <button type="submit" formaction="{% url 'scheduler:download_spec' %}">Save work</button>
+            </div>
+        </form>
+    </div>
 {% endblock %}

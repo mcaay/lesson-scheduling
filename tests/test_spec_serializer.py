@@ -19,6 +19,26 @@ def test_serializer_writes_human_readable_sections():
     serialized = serialize_spec(parsed.spec)
 
     assert "lesson blocks" in serialized
-    assert "room Main Hall" in serialized
-    assert "instructor Anna" in serialized
-    assert "group Lindy Hop 1" in serialized
+    assert "location Swing Studio" in serialized
+    assert "rooms 2" in serialized
+    assert "location Jazz Loft" in serialized
+    assert "rooms 1" in serialized
+    assert "\ncapacity " not in serialized
+    assert "instructor Ania" in serialized
+    assert "instructor Mateusz" in serialized
+    assert "instructor Marysia" in serialized
+    assert "instructor Rafał" in serialized
+    assert "roles leader" in serialized
+    assert "prefers minimum 1 class per week" in serialized
+    assert "prefers maximum 3 classes per week" in serialized
+    assert "group LH1" in serialized
+    assert "group LH2" in serialized
+    assert "group LH3" in serialized
+    assert "group Charleston 1" in serialized
+    assert "group Balboa 1" in serialized
+    assert "group Solo Jazz" in serialized
+    assert "\nstudents " not in serialized
+    assert "teacher roles leader, follower" in serialized
+    assert "teacher roles solo" in serialized
+    assert "style " not in serialized
+    assert "level " not in serialized

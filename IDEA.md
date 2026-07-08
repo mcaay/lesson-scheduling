@@ -97,7 +97,6 @@ Monday-Thursday 19:30-20:55
 Monday-Thursday 21:00-22:25
 
 room Main Hall
-capacity 30
 
 instructor Anna
 can teach Lindy Hop beginner, Solo Jazz beginner
@@ -106,12 +105,9 @@ prefers teaching with Ivona
 cannot teach with Ana
 
 group Lindy Hop 1
-students 24
-style Lindy Hop
-level beginner
 needs 1 lesson per week
 duration 85 minutes
-teachers 2
+teacher roles leader, follower
 ```
 
 The app should support both directions:
@@ -140,7 +136,6 @@ The solver should not invent arbitrary lesson starts outside the defined lesson 
 - the `Lindy Hop 1` group needs 1 lesson per week
 - instructor Anna can teach `Lindy Hop beginner`
 - Anna is available Monday-Thursday from 17:00 to 22:30
-- Room A has capacity for 30 people
 - the group has 24 people
 - one room cannot host two classes at the same time
 - one instructor cannot teach two classes at the same time
@@ -158,8 +153,7 @@ The solver should not invent arbitrary lesson starts outside the defined lesson 
 - no group conflicts
 - classes must use an explicit lesson block
 - the block must fit instructor availability
-- the room must have enough capacity
-- assigned instructors must be eligible to teach the lesson's style and level
+- assigned instructors must be eligible to teach the group's named course
 - lessons requiring two teachers must receive two instructors
 - hard instructor-pair bans must be respected
 
