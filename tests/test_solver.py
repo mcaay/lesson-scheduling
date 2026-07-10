@@ -223,6 +223,40 @@ teacher roles leader
     assert {lesson.location_name for lesson in result.lessons} == {"Main Hall"}
 
 
+def test_solver_avoids_instructor_gaps_by_default():
+    text = """lesson blocks
+Monday 18:00-19:00
+Monday 19:00-20:00
+Monday 20:30-21:30
+
+location Main Hall
+rooms 1
+instructor Anna
+roles leader
+can teach Lindy Hop beginner
+available Monday 17:00-22:00
+
+group Lindy Hop beginner #1
+needs 1 lesson per week
+duration 60 minutes
+teacher roles leader
+
+group Lindy Hop beginner #2
+needs 1 lesson per week
+duration 60 minutes
+teacher roles leader
+"""
+    spec = parse_spec(text).spec
+
+    result = solve_schedule(spec)
+
+    assert result.solved
+    assert sorted((lesson.start, lesson.end) for lesson in result.lessons) == [
+        ("18:00", "19:00"),
+        ("19:00", "20:00"),
+    ]
+
+
 def test_solver_requires_travel_gap_between_different_locations():
     instructor = Instructor(name="Anna")
     group = Group(
