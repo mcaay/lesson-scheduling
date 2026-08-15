@@ -112,8 +112,11 @@ def test_editor_explains_every_input_with_tooltips(client):
 
     assert b"Ranges are OR" in response.content
     assert b"leader, follower, or solo" in response.content
-    assert b"0 disables the instructor" in response.content
-    assert b"exact lesson-block window fixes the time" in response.content
+    assert b"Default: leader, follower" not in response.content
+    assert b"maximum number of classes this instructor would ideally teach" in response.content
+    assert b"Set both preferred class fields to 0 to disable the instructor" in response.content
+    assert b"times when this group can have a lesson" in response.content
+    assert b"fits completely within one of these times" in response.content
     assert b'tabindex="0"' in response.content
 
 

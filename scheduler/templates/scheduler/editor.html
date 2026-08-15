@@ -148,7 +148,7 @@
                                     <input type="text" name="instructor_name" value="{{ instructor.name }}">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Roles" field="instructor_roles" help="Use a comma-separated list containing leader, follower, or solo. Examples: leader; follower, solo. Default: leader, follower." only %}
+                                    {% include "scheduler/_field_help.html" with label="Roles" field="instructor_roles" help="Use a comma-separated list containing leader, follower, or solo. Examples: leader; follower, solo." only %}
                                     <input type="text" name="instructor_roles" value="{{ instructor.roles }}">
                                 </label>
                                 <label>
@@ -156,7 +156,7 @@
                                     <input type="number" name="instructor_preferred_min_classes" min="0" value="{{ instructor.preferred_min_classes_per_week }}">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Preferred max classes" field="instructor_preferred_max_classes" help="Use a whole number not below the preferred minimum. This is a soft target; 0 disables the instructor. Default: 3." only %}
+                                    {% include "scheduler/_field_help.html" with label="Preferred max classes" field="instructor_preferred_max_classes" help="Enter the maximum number of classes this instructor would ideally teach each week. The scheduler may assign more if needed. Set both preferred class fields to 0 to disable the instructor." only %}
                                     <input type="number" name="instructor_preferred_max_classes" min="0" value="{{ instructor.preferred_max_classes_per_week }}">
                                 </label>
                                 <label>
@@ -194,7 +194,7 @@
                                     <input type="text" name="instructor_name" value="">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Roles" field="instructor_roles" help="Use a comma-separated list containing leader, follower, or solo. Examples: leader; follower, solo. Default: leader, follower." only %}
+                                    {% include "scheduler/_field_help.html" with label="Roles" field="instructor_roles" help="Use a comma-separated list containing leader, follower, or solo. Examples: leader; follower, solo." only %}
                                     <input type="text" name="instructor_roles" value="">
                                 </label>
                                 <label>
@@ -202,7 +202,7 @@
                                     <input type="number" name="instructor_preferred_min_classes" min="0" value="1">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Preferred max classes" field="instructor_preferred_max_classes" help="Use a whole number not below the preferred minimum. This is a soft target; 0 disables the instructor. Default: 3." only %}
+                                    {% include "scheduler/_field_help.html" with label="Preferred max classes" field="instructor_preferred_max_classes" help="Enter the maximum number of classes this instructor would ideally teach each week. The scheduler may assign more if needed. Set both preferred class fields to 0 to disable the instructor." only %}
                                     <input type="number" name="instructor_preferred_max_classes" min="0" value="3">
                                 </label>
                                 <label>
@@ -256,7 +256,7 @@
                                     <input type="text" name="group_teacher_roles" value="{{ group.teacher_roles }}">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Time windows" field="group_time_windows" help="Optional comma-separated alternatives, for example Tuesday 18:00-21:00, Thursday 18:00-21:00. Windows are OR; an exact lesson-block window fixes the time." only %}
+                                    {% include "scheduler/_field_help.html" with label="Time windows" field="group_time_windows" help="Optional. Enter the times when this group can have a lesson, separated by commas. Example: Tuesday 18:00-21:00, Thursday 18:00-21:00. The scheduler may choose any lesson block that fits completely within one of these times. To require a specific lesson block, enter its exact day and times." only %}
                                     <input type="text" name="group_time_windows" value="{{ group.time_windows }}">
                                 </label>
                                 {% include "scheduler/_remove_button.html" %}
@@ -284,7 +284,7 @@
                                     <input type="text" name="group_teacher_roles" value="">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Time windows" field="group_time_windows" help="Optional comma-separated alternatives, for example Tuesday 18:00-21:00, Thursday 18:00-21:00. Windows are OR; an exact lesson-block window fixes the time." only %}
+                                    {% include "scheduler/_field_help.html" with label="Time windows" field="group_time_windows" help="Optional. Enter the times when this group can have a lesson, separated by commas. Example: Tuesday 18:00-21:00, Thursday 18:00-21:00. The scheduler may choose any lesson block that fits completely within one of these times. To require a specific lesson block, enter its exact day and times." only %}
                                     <input type="text" name="group_time_windows" value="">
                                 </label>
                                 {% include "scheduler/_remove_button.html" %}
