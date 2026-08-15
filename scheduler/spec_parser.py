@@ -41,7 +41,11 @@ def parse_spec(text):
                 )
             elif item["rooms_count"] is not INVALID_NUMBER:
                 locations.append(
-                    Location(name=item["name"], rooms_count=item["rooms_count"])
+                    Location(
+                        name=item["name"],
+                        rooms_count=item["rooms_count"],
+                        line=item["line"],
+                    )
                 )
 
         if section == "instructor" and item is not None:
@@ -60,6 +64,7 @@ def parse_spec(text):
                     prefers_with=tuple(item["prefers_with"]),
                     avoids_with=tuple(item["avoids_with"]),
                     cannot_teach_with=tuple(item["cannot_teach_with"]),
+                    line=item["line"],
                 )
             )
 
@@ -84,6 +89,7 @@ def parse_spec(text):
                         duration_minutes=item["duration_minutes"],
                         teacher_roles=tuple(item["teacher_roles"]),
                         time_windows=tuple(item["time_windows"]),
+                        line=item["line"],
                     )
                 )
 
@@ -282,7 +288,9 @@ def add_ranges(target, line, line_number, errors, wrapper=None):
     time_ranges, line_errors = parse_time_ranges(line, line_number)
     errors.extend(line_errors)
     for time_range in time_ranges:
-        target.append(wrapper(time_range) if wrapper else time_range)
+        target.append(
+            wrapper(time_range, line=line_number) if wrapper else time_range
+        )
 
 
 def parse_time_ranges(line, line_number):

@@ -5,8 +5,10 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Dance Lesson Scheduler</title>
+        <link rel="icon" href="{% static 'scheduler/favicon.svg' %}" type="image/svg+xml">
         <link rel="stylesheet" href="{% static 'scheduler/styles.css' %}">
         <script src="{% static 'scheduler/app.js' %}" defer></script>
+        {% block head %}{% endblock %}
     </head>
     <body>
         <main>

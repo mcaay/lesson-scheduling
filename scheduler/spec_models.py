@@ -56,6 +56,7 @@ class TimeRange:
 class Location:
     name: str
     rooms_count: int
+    line: int | None = field(default=None, compare=False, repr=False)
 
 
 @dataclass(frozen=True)
@@ -69,6 +70,7 @@ class Instructor:
     prefers_with: tuple[str, ...] = ()
     avoids_with: tuple[str, ...] = ()
     cannot_teach_with: tuple[str, ...] = ()
+    line: int | None = field(default=None, compare=False, repr=False)
 
 
 @dataclass(frozen=True)
@@ -78,6 +80,7 @@ class Group:
     duration_minutes: int
     teacher_roles: tuple[str, ...] = ("leader",)
     time_windows: tuple[TimeRange, ...] = ()
+    line: int | None = field(default=None, compare=False, repr=False)
 
     @property
     def level_name(self):
@@ -101,6 +104,7 @@ class Group:
 @dataclass(frozen=True)
 class LessonBlock:
     time: TimeRange
+    line: int | None = field(default=None, compare=False, repr=False)
 
     @property
     def duration_minutes(self):

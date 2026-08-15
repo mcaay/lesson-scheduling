@@ -1,0 +1,15 @@
+# Exact production versions verified for Python 3.12.
+absl-py==2.4.0
+asgiref==3.11.1
+Django==5.2.15
+gunicorn==23.0.0
+immutabledict==4.3.1
+numpy==2.5.0
+ortools==9.15.6755
+packaging==26.2
+pandas==3.0.3
+protobuf==6.33.6
+python-dateutil==2.9.0.post0
+six==1.17.0
+sqlparse==0.5.5
+typing_extensions==4.15.0

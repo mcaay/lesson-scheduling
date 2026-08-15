@@ -1,4 +1,12 @@
 from scheduler.examples import EXAMPLE_SPEC
+from scheduler.spec_models import (
+    Group,
+    Instructor,
+    LessonBlock,
+    Location,
+    ScheduleSpec,
+    TimeRange,
+)
 from scheduler.spec_parser import parse_spec
 from scheduler.spec_validation import validate_spec
 
@@ -164,9 +172,8 @@ available Friday 18:00-19:25
 
     errors = validate_spec(result.spec)
 
-    assert (
-        errors[0].message
-        == "Group LH1 has no lesson block that matches duration and instructor availability"
+    assert errors[0].message == (
+        "Group LH1 has no matching lesson block with all required instructors available"
     )
 
 
@@ -176,9 +183,8 @@ def test_validation_rejects_no_matching_duration_block():
 
     errors = validate_spec(result.spec)
 
-    assert (
-        errors[0].message
-        == "Group LH1 has no lesson block that matches duration and instructor availability"
+    assert errors[0].message == (
+        "Group LH1 has no lesson block matching its duration and time windows"
     )
 
 
@@ -188,9 +194,8 @@ def test_validation_rejects_no_matching_group_time_window():
 
     errors = validate_spec(result.spec)
 
-    assert (
-        errors[0].message
-        == "Group LH1 has no lesson block that matches duration and instructor availability"
+    assert errors[0].message == (
+        "Group LH1 has no lesson block matching its duration and time windows"
     )
 
 
@@ -213,3 +218,129 @@ def test_validation_rejects_location_without_rooms():
     errors = validate_spec(result.spec)
 
     assert errors[0].message == "Location Swing Studio must have at least one room"
+
+
+def test_validation_rejects_duplicate_names_with_source_line():
+    text = TWO_TEACHER_SPEC + """
+group LH1
+needs 1 lesson per week
+duration 85 minutes
+teacher roles leader, follower
+"""
+    result = parse_spec(text)
+
+    errors = validate_spec(result.spec)
+
+    duplicate_error = next(
+        error for error in errors if "declared more than once" in error.message
+    )
+    assert duplicate_error.line == result.spec.groups[-1].line
+    assert duplicate_error.message == "Group name LH1 is declared more than once"
+
+
+def test_validation_allows_zero_maximum_to_disable_default_instructor():
+    text = TWO_TEACHER_SPEC.replace(
+        "prefers maximum 3 classes per week",
+        "prefers maximum 0 classes per week",
+        1,
+    )
+    result = parse_spec(text)
+
+    errors = validate_spec(result.spec)
+
+    assert not any("preferred minimum" in error.message for error in errors)
+    assert any("needs a follower teacher" in error.message for error in errors)
+
+
+def test_validation_rejects_zero_lessons_and_off_grid_duration():
+    text = TWO_TEACHER_SPEC.replace("needs 1 lesson", "needs 0 lessons")
+    text = text.replace("duration 85 minutes", "duration 61 minutes")
+    result = parse_spec(text)
+
+    errors = validate_spec(result.spec)
+
+    assert any("at least one lesson" in error.message for error in errors)
+    assert any("duration must use 5-minute steps" in error.message for error in errors)
+    assert all(error.line == result.spec.groups[0].line for error in errors)
+
+
+def test_validation_rejects_empty_project():
+    errors = validate_spec(ScheduleSpec())
+
+    assert [error.message for error in errors] == [
+        "At least one lesson block is required",
+        "At least one location is required",
+        "At least one instructor is required",
+        "At least one group is required",
+    ]
+
+
+def test_validation_rejects_unsupported_instructor_role():
+    text = TWO_TEACHER_SPEC.replace("roles follower", "roles follower, wizard")
+    result = parse_spec(text)
+
+    errors = validate_spec(result.spec)
+
+    assert any(
+        error.message == "Instructor Ania uses unsupported role wizard"
+        for error in errors
+    )
+
+
+def test_validation_rejects_names_that_cannot_round_trip():
+    text = TWO_TEACHER_SPEC.replace("group LH1", "group Swing, advanced")
+    result = parse_spec(text)
+
+    errors = validate_spec(result.spec)
+
+    assert any("cannot contain commas" in error.message for error in errors)
+
+
+def test_validation_rejects_excessive_room_count_before_solving():
+    text = TWO_TEACHER_SPEC.replace("rooms 1", "rooms 1000000000")
+    result = parse_spec(text)
+
+    errors = validate_spec(result.spec)
+
+    assert any("cannot have more than" in error.message for error in errors)
+
+
+def test_validation_rejects_excessive_candidate_count():
+    block = LessonBlock(TimeRange("Monday", "18:00", "19:00"))
+    availability = (TimeRange("Monday", "17:00", "22:00"),)
+    instructors = tuple(
+        Instructor(
+            name=f"Instructor {index}",
+            can_teach=("Course",),
+            availability=availability,
+        )
+        for index in range(100)
+    )
+    spec = ScheduleSpec(
+        lesson_blocks=(block,),
+        locations=(Location("Studio", 20),),
+        instructors=instructors,
+        groups=(Group("Course", 1, 60, ("leader", "follower")),),
+    )
+
+    errors = validate_spec(spec)
+
+    assert any("too many possible assignments" in error.message for error in errors)
+
+
+def test_validation_distinguishes_too_few_distinct_teachers_from_pair_ban():
+    text = TWO_TEACHER_SPEC.replace(
+        "instructor Mateusz",
+        "instructor Disabled Mateusz",
+    ).replace(
+        "can teach LH1\navailable Monday 17:00-22:30\nprefers teaching with Ania",
+        "can teach Other\navailable Monday 17:00-22:30\nprefers teaching with Ania",
+        1,
+    )
+    text = text.replace("roles follower", "roles leader, follower")
+    text = text.replace("prefers teaching with Mateusz", "")
+    result = parse_spec(text)
+
+    errors = validate_spec(result.spec)
+
+    assert any("needs two distinct teachers" in error.message for error in errors)

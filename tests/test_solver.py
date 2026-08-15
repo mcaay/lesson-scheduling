@@ -1,8 +1,16 @@
+import pytest
+from ortools.sat.python import cp_model
+
 from scheduler.examples import EXAMPLE_SPEC
 from scheduler.solver import (
+    INFEASIBLE_MESSAGE,
+    MODEL_INVALID_MESSAGE,
     SOLVER_TIME_LIMIT_SECONDS,
+    TIME_LIMIT_MESSAGE,
     _Candidate,
+    _assert_valid_solution,
     _conflicts,
+    _message_for_status,
     solve_schedule,
 )
 from scheduler.spec_models import Group, Instructor, LessonBlock, Location, TimeRange
@@ -423,3 +431,100 @@ teacher roles leader
 
     assert not result.solved
     assert result.message == "No complete schedule found. The combined constraints are too tight."
+
+
+def test_solver_reports_distinct_failure_statuses():
+    assert _message_for_status(cp_model.INFEASIBLE) == INFEASIBLE_MESSAGE
+    assert _message_for_status(cp_model.UNKNOWN) == TIME_LIMIT_MESSAGE
+    assert _message_for_status(cp_model.MODEL_INVALID) == MODEL_INVALID_MESSAGE
+
+
+def test_pair_preferences_outweigh_gap_and_workload_tiebreakers():
+    text = """lesson blocks
+Monday 18:00-19:00
+Monday 19:00-20:00
+Monday 21:00-22:00
+
+location Main Hall
+rooms 1
+
+instructor Dedicated
+roles leader
+can teach Course A
+available Monday 18:00-19:00
+
+instructor Anchor
+roles follower
+can teach Course A, Course B
+available Monday 18:00-22:00
+prefers teaching with Preferred
+
+instructor Preferred
+roles leader
+can teach Course B
+available Monday 21:00-22:00
+prefers teaching with Anchor
+
+instructor Alternative
+roles leader
+can teach Course B
+available Monday 19:00-20:00
+
+group Course A
+needs 1 lesson per week
+duration 60 minutes
+teacher roles leader, follower
+time window Monday 18:00-19:00
+
+group Course B
+needs 1 lesson per week
+duration 60 minutes
+teacher roles leader, follower
+"""
+
+    result = solve_schedule(parse_spec(text).spec)
+
+    course_b = next(lesson for lesson in result.lessons if lesson.group_name == "Course B")
+    assert course_b.start == "21:00"
+    assert set(course_b.instructor_names) == {"Anchor", "Preferred"}
+
+
+def test_solution_invariant_rejects_the_same_instructor_twice():
+    instructor = Instructor(name="Anna", can_teach=("Course",))
+    group = Group("Course", 1, 60, ("leader", "follower"))
+    location = Location("Studio", 1)
+    lesson_block = LessonBlock(TimeRange("Monday", "18:00", "19:00"))
+    spec = parse_spec(
+        """lesson blocks
+Monday 18:00-19:00
+
+location Studio
+rooms 1
+
+instructor Anna
+can teach Course
+available Monday 18:00-19:00
+
+group Course
+needs 1 lesson per week
+duration 60 minutes
+teacher roles leader, follower
+"""
+    ).spec
+    candidate = _Candidate(
+        group=group,
+        location=location,
+        room_index=1,
+        lesson_block=lesson_block,
+        instructors=(instructor, instructor),
+        preference_score=0,
+    )
+    direct_spec = type(spec)(
+        lesson_blocks=(lesson_block,),
+        locations=(location,),
+        instructors=(instructor,),
+        groups=(group,),
+    )
+
+    with pytest.raises(RuntimeError, match="same instructor twice"):
+        _assert_valid_solution((candidate,), direct_spec)

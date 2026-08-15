@@ -41,3 +41,23 @@ def test_result_grid_groups_by_day_location_room_slot_and_lesson_block():
     ]
     assert grid["rows"][0]["days"][0]["room_slots"][0]["lesson"].group_name == "LH1"
     assert grid["rows"][0]["days"][0]["room_slots"][1]["lesson"] is None
+
+
+def test_result_grid_marks_day_and_time_combinations_that_do_not_exist():
+    spec = parse_spec(
+        """lesson blocks
+Monday 18:00-19:00
+Tuesday 19:00-20:00
+
+location Studio
+rooms 1
+"""
+    ).spec
+    result = SolveResult(solved=True)
+
+    grid = build_result_grid(spec, result)
+
+    monday_1800 = grid["rows"][0]["days"][0]["room_slots"][0]
+    tuesday_1800 = grid["rows"][0]["days"][1]["room_slots"][0]
+    assert monday_1800["is_defined"] is True
+    assert tuesday_1800["is_defined"] is False

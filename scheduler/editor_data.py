@@ -1,6 +1,5 @@
 from collections import OrderedDict
 
-from scheduler.examples import EXAMPLE_SPEC
 from scheduler.spec_models import DAYS
 from scheduler.spec_parser import parse_spec
 
@@ -8,7 +7,12 @@ from scheduler.spec_parser import parse_spec
 def build_editor_data(raw_spec):
     result = parse_spec(raw_spec)
     if not result.spec:
-        result = parse_spec(EXAMPLE_SPEC)
+        return {
+            "lesson_blocks": [],
+            "locations": [],
+            "instructors": [],
+            "groups": [],
+        }
 
     return {
         "lesson_blocks": _time_range_rows(

@@ -28,12 +28,14 @@
                             <th class="schedule-time" scope="row">{{ row.time }}</th>
                             {% for day in row.days %}
                                 {% for room_slot in day.room_slots %}
-                                    <td class="schedule-cell">
+                                    <td class="schedule-cell{% if not room_slot.is_defined %} schedule-cell-unavailable{% endif %}">
                                         {% if room_slot.lesson %}
                                             <article class="lesson-card">
                                                 <h3>{{ room_slot.lesson.group_name }}</h3>
                                                 <p>{{ room_slot.lesson.instructor_names|join:", " }}</p>
                                             </article>
+                                        {% elif not room_slot.is_defined %}
+                                            <span class="visually-hidden">No lesson block is available</span>
                                         {% endif %}
                                     </td>
                                 {% endfor %}

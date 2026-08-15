@@ -4,7 +4,44 @@ Date: 2026-08-15
 Audited commit: `305a3b8` (`main`)  
 Specification: `IDEA.md`
 
-## Executive summary
+## Remediation status
+
+All 19 findings from the audited commit have been resolved and regression-tested on 2026-08-15.
+
+| Finding | Status | Resolution |
+|---|---|---|
+| C-01 | Fixed | Added a 256 KB input limit, entity/value/candidate limits, a 20,000-candidate budget, four-job admission limit, 100-file retention bound, and 130-second whole-process deadline. Replaced 45 million pair checks with slot/resource `AddAtMostOne` constraints; the 9,534-candidate example now builds its hard-constraint model in 0.204 seconds with 638 constraints. |
+| H-01 | Fixed | Duplicate names are rejected with source lines. Solver resources use object identity, instructor pairs require distinct objects, and every returned solution passes an invariant checker. |
+| H-02 | Fixed | Added required-collection, range, role, duration-grid, lesson-count, reference, contradiction, self-reference, and complexity validation. |
+| H-03 | Fixed | Jobs are disk-backed as queued/running/terminal records. Polling reclaims work whose worker PID died, and atomic claiming prevents duplicate execution after restart. |
+| H-04 | Fixed | Invalid raw text stays authoritative, opens in the Raw specification tab, and is never replaced by example/GUI data. |
+| H-05 | Fixed | Every solve POST now creates a background job. Plain HTML clients receive a redirect to an auto-refreshing status page; AJAX clients poll the same job. |
+| H-06 | Fixed | `INFEASIBLE`, `UNKNOWN`/timeout, and `MODEL_INVALID` now have distinct user messages and persisted solver statuses. |
+| M-01 | Fixed | Preferred maximum `0` alone disables an instructor; the default minimum no longer causes a contradictory validation error. |
+| M-02 | Fixed | Parsed entities retain non-semantic source-line metadata, and all entity-level validation errors report that line with more specific causes. |
+| M-03 | Fixed | Result-grid cells without a declared day/time lesson block are marked unavailable rather than appearing schedulable. |
+| M-04 | Fixed | Commas and line breaks are rejected in referenced instructor/group names, preventing lossy GUI serialization. |
+| M-05 | Fixed | Every endpoint now declares its accepted HTTP methods and returns `405` for unsupported methods. |
+| M-06 | Fixed | Optimization is lexicographic: pair preferences first, same-day gaps second, workload deviation third. Dominating calculated weights remove accidental trade-offs. |
+| M-07 | Fixed | Job directories/files are mode `0700`/`0600` from creation, writes are atomic, stale JSON/temp files are cleaned, stored jobs are bounded, and status/result responses use `Cache-Control: no-store`. |
+| M-08 | Fixed | Imports are size-limited before full processing, restricted to plain-text `.txt`, decoded with `utf-8-sig`, and give precise type/size/encoding errors. |
+| L-01 | Fixed | Time/duration controls use five-minute steps; tabs support Arrow/Home/End with correct focus state; tooltip prose is excluded from field accessible names; reduced motion removes animation. |
+| L-02 | Fixed | Added and linked a real SVG favicon. |
+| L-03 | Fixed | Added `requirements.lock` with exact production and transitive versions and documented constrained deployment installation. |
+| L-04 | Fixed | Downloads now declare `text/plain; charset=utf-8`. |
+
+Current verification:
+
+- `.venv/bin/pytest -q` — **116 passed**;
+- `.venv/bin/python manage.py check` — **no issues**;
+- production-configured `manage.py check --deploy` — only the two intentionally documented HSTS subdomain/preload warnings;
+- `.venv/bin/pip check` — **no broken requirements**;
+- `.venv/bin/python -m compileall -q lesson_scheduling scheduler` — **passed**;
+- `git diff --check` — **passed**.
+
+The remainder of this document is the historical audit of commit `305a3b8`; its evidence and line numbers describe that original implementation.
+
+## Original executive summary
 
 The happy path works, and the existing 88 tests pass. The project nevertheless has one critical availability/security flaw, six high-severity correctness or reliability flaws, and several medium/low issues.
 
@@ -17,7 +54,7 @@ The project should not be considered production-safe until C-01 and H-01 through
 - the non-JavaScript path runs a potentially 120+ second solve inside a Gunicorn worker configured with a 60-second timeout;
 - a timeout is falsely reported as proof that the constraints are infeasible.
 
-## Scope and verification
+## Original scope and verification
 
 Reviewed:
 
@@ -37,7 +74,7 @@ Commands/checks:
 
 The current tests prove many intended rules for small, clean inputs. They do not cover adversarial sizes, identifier collisions, process restarts, timeout status, or preservation of invalid raw input.
 
-## Findings
+## Original findings
 
 ### C-01 — Unbounded solver work enables trivial denial of service
 

@@ -4,6 +4,10 @@ from scheduler.spec_models import DAYS, to_slot
 def build_result_grid(spec, result):
     days = _ordered_days(spec.lesson_blocks)
     room_slots = _room_slots(spec.locations)
+    defined_blocks = {
+        (block.time.day, block.time.start, block.time.end)
+        for block in spec.lesson_blocks
+    }
     lesson_lookup = {
         (
             lesson.day,
@@ -28,6 +32,7 @@ def build_result_grid(spec, result):
                                 "name": room_slot["name"],
                                 "location_name": room_slot["location_name"],
                                 "room_index": room_slot["room_index"],
+                                "is_defined": (day, start, end) in defined_blocks,
                                 "lesson": lesson_lookup.get(
                                     (
                                         day,

@@ -173,11 +173,15 @@
         var tabButtons = Array.from(scope.querySelectorAll("[data-editor-tab]"));
         var panels = Array.from(scope.querySelectorAll("[data-tab-panel]"));
 
-        function activateTab(name) {
+        function activateTab(name, moveFocus) {
             tabButtons.forEach(function (button) {
                 var isActive = button.getAttribute("data-editor-tab") === name;
                 button.classList.toggle("is-active", isActive);
                 button.setAttribute("aria-selected", isActive ? "true" : "false");
+                button.setAttribute("tabindex", isActive ? "0" : "-1");
+                if (isActive && moveFocus) {
+                    button.focus();
+                }
             });
 
             panels.forEach(function (panel) {
@@ -194,6 +198,27 @@
             button.addEventListener("click", function () {
                 activateTab(button.getAttribute("data-editor-tab"));
             });
+            button.addEventListener("keydown", function (event) {
+                var currentIndex = tabButtons.indexOf(button);
+                var nextIndex = null;
+                if (event.key === "ArrowRight") {
+                    nextIndex = (currentIndex + 1) % tabButtons.length;
+                } else if (event.key === "ArrowLeft") {
+                    nextIndex = (currentIndex - 1 + tabButtons.length) % tabButtons.length;
+                } else if (event.key === "Home") {
+                    nextIndex = 0;
+                } else if (event.key === "End") {
+                    nextIndex = tabButtons.length - 1;
+                }
+                if (nextIndex === null) {
+                    return;
+                }
+                event.preventDefault();
+                activateTab(
+                    tabButtons[nextIndex].getAttribute("data-editor-tab"),
+                    true
+                );
+            });
         });
     }
 
@@ -202,7 +227,11 @@
         var form = scope.querySelector("[data-spec-form]");
         var rawSpec = scope.querySelector("[data-raw-spec-input]");
         var status = scope.querySelector("[data-raw-spec-status]");
-        var rawSpecDirty = false;
+        var rawSpecDirty = Boolean(
+            form
+            && form.hasAttribute
+            && form.hasAttribute("data-raw-spec-authoritative")
+        );
         var formDirty = false;
 
         if (!form || !rawSpec) {
@@ -315,7 +344,12 @@
                 })
                     .then(responseJson)
                     .then(function (data) {
-                        pollSolveJob(data.status_url, loading, submitter);
+                        pollSolveJob(
+                            data.status_url,
+                            loading,
+                            submitter,
+                            Date.now() + (5 * 60 * 1000)
+                        );
                     })
                     .catch(function () {
                         restoreAfterSolveError(loading, submitter);
@@ -324,15 +358,19 @@
         });
     }
 
-    function pollSolveJob(statusUrl, loading, submitter) {
+    function pollSolveJob(statusUrl, loading, submitter, deadline) {
+        if (Date.now() >= deadline) {
+            restoreAfterSolveError(loading, submitter);
+            return;
+        }
         root.fetch(statusUrl, {
             headers: {"X-Requested-With": "XMLHttpRequest"}
         })
             .then(responseJson)
             .then(function (data) {
-                if (data.status === "pending") {
+                if (data.status === "queued" || data.status === "running") {
                     root.setTimeout(function () {
-                        pollSolveJob(statusUrl, loading, submitter);
+                        pollSolveJob(statusUrl, loading, submitter, deadline);
                     }, 1000);
                     return;
                 }

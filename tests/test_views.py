@@ -1,7 +1,11 @@
-from django.urls import reverse
+import uuid
+
+import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.urls import reverse
 
 from scheduler.examples import EXAMPLE_SPEC
+from scheduler.spec_limits import MAX_RAW_SPEC_BYTES
 
 
 def test_editor_shows_example_spec(client):
@@ -17,7 +21,7 @@ def test_editor_shows_example_spec(client):
     assert b"Solo Jazz" in response.content
     assert b'value="Swing Studio"' in response.content
     assert b'value="Jazz Loft"' in response.content
-    assert b'name="location_rooms_count" min="1" value="2"' in response.content
+    assert b'name="location_rooms_count" aria-label="Number of rooms" min="1" value="2"' in response.content
     assert b'value="Ania"' in response.content
     assert b'value="Mateusz"' in response.content
     assert b'value="Marysia"' in response.content
@@ -25,8 +29,8 @@ def test_editor_shows_example_spec(client):
     assert b"<strong>Ania</strong>" not in response.content
     assert b"<strong>New instructor</strong>" not in response.content
     assert b'name="room_capacity"' not in response.content
-    assert b'name="instructor_preferred_min_classes" min="0" value="1"' in response.content
-    assert b'name="instructor_preferred_max_classes" min="0" value="3"' in response.content
+    assert b'name="instructor_preferred_min_classes" aria-label="Preferred min classes" min="0" value="1"' in response.content
+    assert b'name="instructor_preferred_max_classes" aria-label="Preferred max classes" min="0" value="3"' in response.content
 
 
 def test_editor_has_form_first_sections(client):
@@ -60,6 +64,11 @@ def test_editor_has_form_first_sections(client):
     assert b'name="group_teacher_roles"' in response.content
     assert b'name="group_style"' not in response.content
     assert b'name="group_level"' not in response.content
+    assert b'type="time" name="lesson_block_start" aria-label="Starts" step="300"' in response.content
+    assert b'name="group_duration_minutes" aria-label="Duration minutes" min="5" step="5"' in response.content
+    assert b'aria-labelledby="parameters-tab"' in response.content
+    assert b'aria-labelledby="raw-spec-tab"' in response.content
+    assert b"scheduler/favicon.svg" in response.content
 
 
 def test_editor_has_repeatable_row_controls(client):
@@ -112,20 +121,35 @@ def test_editor_explains_every_input_with_tooltips(client):
 
     tooltip_count = response.content.count(b'class="field-tooltip"')
     assert tooltip_count > len(fields)
-    assert response.content.count(b'<span class="field-tooltip-example-label">E.g.</span>') == tooltip_count
+    assert (
+        response.content.count(
+            b'<span class="field-tooltip-example-label">E.g.</span>'
+        )
+        == tooltip_count
+    )
     assert response.content.count(b"<hr>") == tooltip_count
     assert b"<code>Tuesday</code>" in response.content
     assert b"<code>Monday-Thursday</code>" in response.content
     assert b"Default: leader, follower" not in response.content
     assert b"The roles this instructor can teach" in response.content
-    assert b"Set both preferred class fields to 0 to disable the instructor" in response.content
+    assert b"Enter 0 here to disable the instructor" in response.content
     assert b"Optional times when this group can have a lesson" in response.content
     assert b"must fit completely inside one of them" in response.content
     assert b'tabindex="0"' in response.content
 
 
-def test_run_schedule_shows_result(client):
-    response = client.post(reverse("scheduler:run"), {"raw_spec": EXAMPLE_SPEC})
+def test_run_schedule_shows_result(client, monkeypatch, settings, tmp_path):
+    class ImmediateExecutor:
+        def submit(self, function, *args):
+            function(*args)
+
+    settings.SOLVER_JOB_DIRECTORY = tmp_path
+    monkeypatch.setattr("scheduler.solve_jobs._executor", ImmediateExecutor())
+    response = client.post(
+        reverse("scheduler:run"),
+        {"raw_spec": EXAMPLE_SPEC},
+        follow=True,
+    )
 
     assert response.status_code == 200
     assert b"Generated schedule" in response.content
@@ -147,7 +171,8 @@ def test_run_schedule_shows_result(client):
     assert b"Start over" not in response.content
 
 
-def test_run_schedule_shows_validation_errors(client):
+def test_run_schedule_shows_validation_errors(client, settings, tmp_path):
+    settings.SOLVER_JOB_DIRECTORY = tmp_path
     response = client.post(
         reverse("scheduler:run"),
         {
@@ -156,6 +181,7 @@ def test_run_schedule_shows_validation_errors(client):
                 "group Lindy Hop 1\nneeds 1 lesson per week"
             )
         },
+        follow=True,
     )
 
     assert response.status_code == 200
@@ -168,7 +194,7 @@ def test_download_spec_returns_text_file(client):
     )
 
     assert response.status_code == 200
-    assert response["Content-Type"] == "text/plain"
+    assert response["Content-Type"] == "text/plain; charset=utf-8"
     assert response["Content-Disposition"].startswith("attachment;")
     assert b"group LH1" in response.content
     assert b"group Solo Jazz" in response.content
@@ -214,9 +240,11 @@ def test_ajax_solver_returns_job_and_renders_completed_result(
     assert response.status_code == 202
     status_response = client.get(response.json()["status_url"])
     assert status_response.json()["status"] == "complete"
+    assert status_response["Cache-Control"] == "no-store"
 
     result_response = client.get(status_response.json()["result_url"])
     assert result_response.status_code == 200
+    assert result_response["Cache-Control"] == "no-store"
     assert b"Generated schedule" in result_response.content
     assert b"LH1" in result_response.content
 
@@ -265,7 +293,7 @@ def test_import_spec_rejects_non_utf8_upload(client):
 
     response = client.post(reverse("scheduler:import_spec"), {"spec_file": upload})
 
-    assert response.status_code == 200
+    assert response.status_code == 400
     assert b"UTF-8 text file" in response.content
 
 
@@ -290,3 +318,103 @@ def test_editor_post_rehydrates_gui_from_raw_spec(client):
     assert b'value="Blue Studio"' in response.content
     assert b'name="room_capacity"' not in response.content
     assert b'value="Monday-Thursday"' in response.content
+
+
+def test_invalid_raw_spec_stays_authoritative_in_the_raw_tab(
+    client,
+    settings,
+    tmp_path,
+):
+    settings.SOLVER_JOB_DIRECTORY = tmp_path
+
+    response = client.post(
+        reverse("scheduler:run"),
+        {"raw_spec": "group Broken"},
+        follow=True,
+    )
+
+    assert b"group Broken" in response.content
+    assert b'data-raw-spec-authoritative' in response.content
+    assert b'id="raw-spec-tab"' in response.content
+    assert b'id="raw-spec-panel"' in response.content
+    assert b'value="Swing Studio"' not in response.content
+
+
+def test_plain_form_submission_returns_a_refreshing_job_page(
+    client,
+    monkeypatch,
+    settings,
+    tmp_path,
+):
+    class HoldingExecutor:
+        def submit(self, _function, *_args):
+            pass
+
+    settings.SOLVER_JOB_DIRECTORY = tmp_path
+    monkeypatch.setattr("scheduler.solve_jobs._executor", HoldingExecutor())
+
+    response = client.post(
+        reverse("scheduler:run"),
+        {"raw_spec": EXAMPLE_SPEC},
+        follow=True,
+    )
+
+    assert b"Finding the best schedule" in response.content
+    assert b'http-equiv="refresh"' in response.content
+    assert response["Cache-Control"] == "no-store"
+
+
+def test_raw_spec_has_an_application_byte_limit(client):
+    response = client.post(
+        reverse("scheduler:run"),
+        {"raw_spec": "x" * (MAX_RAW_SPEC_BYTES + 1)},
+    )
+
+    assert response.status_code == 400
+    assert b"cannot exceed" in response.content
+
+
+def test_import_accepts_utf8_bom(client):
+    upload = SimpleUploadedFile(
+        "schedule.txt",
+        b"\xef\xbb\xbf" + EXAMPLE_SPEC.encode("utf-8"),
+        content_type="text/plain",
+    )
+
+    response = client.post(reverse("scheduler:import_spec"), {"spec_file": upload})
+
+    assert response.status_code == 200
+    assert b"\xef\xbb\xbf" not in response.content
+    assert b"group LH1" in response.content
+
+
+def test_import_rejects_wrong_extension(client):
+    upload = SimpleUploadedFile(
+        "schedule.pdf",
+        EXAMPLE_SPEC.encode("utf-8"),
+        content_type="application/pdf",
+    )
+
+    response = client.post(reverse("scheduler:import_spec"), {"spec_file": upload})
+
+    assert response.status_code == 400
+    assert b".txt" in response.content
+
+
+@pytest.mark.parametrize(
+    "url_name",
+    ("run", "download_spec", "import_spec"),
+)
+def test_post_only_endpoints_reject_get(client, url_name):
+    assert client.get(reverse(f"scheduler:{url_name}")).status_code == 405
+
+
+@pytest.mark.parametrize(
+    "url_name",
+    ("solve_job_status", "solve_job_result"),
+)
+def test_job_read_endpoints_reject_post(client, url_name):
+    assert (
+        client.post(reverse(f"scheduler:{url_name}", args=[uuid.uuid4()])).status_code
+        == 405
+    )

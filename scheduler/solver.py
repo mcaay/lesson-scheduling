@@ -1,3 +1,4 @@
+from collections import defaultdict
 from dataclasses import dataclass
 from itertools import combinations
 
@@ -6,7 +7,13 @@ from ortools.sat.python import cp_model
 from scheduler.spec_models import instructor_can_teach_group, to_slot
 
 
-UNSOLVED_MESSAGE = "No complete schedule found. The combined constraints are too tight."
+INFEASIBLE_MESSAGE = "No complete schedule found. The combined constraints are too tight."
+UNSOLVED_MESSAGE = INFEASIBLE_MESSAGE
+TIME_LIMIT_MESSAGE = (
+    "The solver reached its time limit before finding a complete schedule. "
+    "Try reducing the number of rooms, lesson blocks, instructors, or groups."
+)
+MODEL_INVALID_MESSAGE = "The scheduling model is invalid. Please report this error."
 MIN_TRAVEL_MINUTES_BETWEEN_LOCATIONS = 60
 SOLVER_TIME_LIMIT_SECONDS = 120
 
@@ -27,6 +34,7 @@ class SolveResult:
     solved: bool
     lessons: tuple[ScheduledLesson, ...] = ()
     message: str = ""
+    status: str = ""
 
 
 @dataclass(frozen=True)
@@ -50,33 +58,60 @@ def solve_schedule(spec):
     _add_group_requirements(model, variables, candidates, spec.groups)
     _add_resource_conflicts(model, variables, candidates)
 
-    preference_terms = [
+    pair_preference_terms = [
         candidate.preference_score * variables[index]
         for index, candidate in enumerate(candidates)
         if candidate.preference_score
     ]
-    preference_terms.extend(
-        _instructor_load_preference_terms(model, variables, candidates, spec.instructors)
+    gap_terms, maximum_gap_penalty = _instructor_gap_preference_terms(
+        model,
+        variables,
+        candidates,
+        spec.instructors,
     )
-    preference_terms.extend(
-        _instructor_gap_preference_terms(model, variables, candidates, spec.instructors)
+    load_terms, maximum_load_penalty = _instructor_load_preference_terms(
+        model,
+        variables,
+        candidates,
+        spec.instructors,
     )
-    if preference_terms:
-        model.Maximize(sum(preference_terms))
+    if pair_preference_terms or gap_terms or load_terms:
+        # Each tier outweighs every possible change in the tiers below it.
+        gap_weight = maximum_load_penalty + 1
+        pair_weight = maximum_gap_penalty * gap_weight + maximum_load_penalty + 1
+        model.Maximize(
+            pair_weight * sum(pair_preference_terms)
+            - gap_weight * sum(gap_terms)
+            - sum(load_terms)
+        )
 
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = SOLVER_TIME_LIMIT_SECONDS
     status = solver.Solve(model)
 
     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
-        return SolveResult(False, message=UNSOLVED_MESSAGE)
+        return SolveResult(
+            False,
+            message=_message_for_status(status),
+            status=solver.StatusName(status),
+        )
 
-    lessons = tuple(
-        _candidate_to_lesson(candidate)
+    selected_candidates = tuple(
+        candidate
         for index, candidate in enumerate(candidates)
         if solver.BooleanValue(variables[index])
     )
-    return SolveResult(True, lessons=lessons)
+    _assert_valid_solution(selected_candidates, spec)
+    lessons = tuple(_candidate_to_lesson(candidate) for candidate in selected_candidates)
+    return SolveResult(True, lessons=lessons, status=solver.StatusName(status))
+
+
+def _message_for_status(status):
+    if status == cp_model.INFEASIBLE:
+        return INFEASIBLE_MESSAGE
+    if status == cp_model.MODEL_INVALID:
+        return MODEL_INVALID_MESSAGE
+    return TIME_LIMIT_MESSAGE
 
 
 def _build_candidates(spec):
@@ -153,13 +188,13 @@ def _role_pairs(instructors, roles):
         if _pair_is_banned(first, second):
             continue
         if first_role in first.roles and second_role in second.roles:
-            key = tuple(sorted([first.name, second.name]))
+            key = frozenset((id(first), id(second)))
             if key not in seen:
                 pairs.append((first, second))
                 seen.add(key)
             continue
         if first_role in second.roles and second_role in first.roles:
-            key = tuple(sorted([first.name, second.name]))
+            key = frozenset((id(first), id(second)))
             if key not in seen:
                 pairs.append((second, first))
                 seen.add(key)
@@ -187,7 +222,7 @@ def _add_group_requirements(model, variables, candidates, groups):
         indices = [
             index
             for index, candidate in enumerate(candidates)
-            if candidate.group.name == group.name
+            if candidate.group is group
         ]
         if indices:
             model.Add(
@@ -198,20 +233,62 @@ def _add_group_requirements(model, variables, candidates, groups):
 
 
 def _add_resource_conflicts(model, variables, candidates):
-    for first_index, first in enumerate(candidates):
-        for second_index in range(first_index + 1, len(candidates)):
-            second = candidates[second_index]
-            if _conflicts(first, second):
-                model.Add(variables[first_index] + variables[second_index] <= 1)
+    # Slot buckets express the same exclusions without comparing every pair.
+    room_slots = defaultdict(list)
+    group_slots = defaultdict(list)
+    instructor_slots = defaultdict(list)
+    travel_slots = defaultdict(lambda: defaultdict(list))
+    travel_slot_count = MIN_TRAVEL_MINUTES_BETWEEN_LOCATIONS // 5
+
+    for index, candidate in enumerate(candidates):
+        time = candidate.lesson_block.time
+        start = to_slot(time.start)
+        end = to_slot(time.end)
+        location_id = id(candidate.location)
+        for slot in range(start, end):
+            room_slots[(location_id, candidate.room_index, time.day, slot)].append(index)
+            group_slots[(id(candidate.group), time.day, slot)].append(index)
+            for instructor in candidate.instructors:
+                instructor_slots[(id(instructor), time.day, slot)].append(index)
+        for slot in range(start, end + travel_slot_count):
+            # Extending occupancy after a lesson creates the travel interval.
+            for instructor in candidate.instructors:
+                key = (id(instructor), time.day, slot)
+                travel_slots[key][location_id].append(index)
+
+    seen_variable_sets = set()
+    for buckets in (room_slots, group_slots, instructor_slots):
+        for indices in buckets.values():
+            variable_set = tuple(sorted(set(indices)))
+            if len(variable_set) < 2 or variable_set in seen_variable_sets:
+                continue
+            model.AddAtMostOne(variables[index] for index in variable_set)
+            seen_variable_sets.add(variable_set)
+
+    for slot_index, locations in enumerate(travel_slots.values()):
+        if len(locations) < 2:
+            continue
+        location_active_variables = []
+        for location_index, indices in enumerate(locations.values()):
+            location_active = model.NewBoolVar(
+                f"travel_{slot_index}_location_{location_index}"
+            )
+            model.AddMaxEquality(
+                location_active,
+                [variables[index] for index in set(indices)],
+            )
+            location_active_variables.append(location_active)
+        model.AddAtMostOne(location_active_variables)
 
 
 def _instructor_load_preference_terms(model, variables, candidates, instructors):
     terms = []
+    maximum_penalty = 0
     for instructor_index, instructor in enumerate(instructors):
         instructor_variables = [
             variables[index]
             for index, candidate in enumerate(candidates)
-            if instructor.name in _candidate_instructor_names(candidate)
+            if _candidate_has_instructor(candidate, instructor)
         ]
         if not instructor_variables:
             continue
@@ -237,18 +314,20 @@ def _instructor_load_preference_terms(model, variables, candidates, instructors)
         model.Add(
             excess >= lesson_count - instructor.preferred_max_classes_per_week
         )
-        terms.extend([-10 * shortage, -10 * excess])
-    return terms
+        terms.extend([shortage, excess])
+        maximum_penalty += 2 * upper_bound
+    return terms, maximum_penalty
 
 
 def _instructor_gap_preference_terms(model, variables, candidates, instructors):
     terms = []
+    maximum_penalty = 0
     for instructor_index, instructor in enumerate(instructors):
         days = sorted(
             {
                 candidate.lesson_block.time.day
                 for candidate in candidates
-                if instructor.name in _candidate_instructor_names(candidate)
+                if _candidate_has_instructor(candidate, instructor)
             }
         )
         for day_index, day in enumerate(days):
@@ -256,7 +335,7 @@ def _instructor_gap_preference_terms(model, variables, candidates, instructors):
                 (index, candidate)
                 for index, candidate in enumerate(candidates)
                 if candidate.lesson_block.time.day == day
-                and instructor.name in _candidate_instructor_names(candidate)
+                and _candidate_has_instructor(candidate, instructor)
             ]
             starts = [
                 to_slot(candidate.lesson_block.time.start)
@@ -296,12 +375,16 @@ def _instructor_gap_preference_terms(model, variables, candidates, instructors):
             model.Add(
                 idle_slots >= last_end - first_start - sum(duration_terms)
             )
-            terms.append(-idle_slots)
-    return terms
+            terms.append(idle_slots)
+            maximum_penalty += day_end - day_start
+    return terms, maximum_penalty
 
 
-def _candidate_instructor_names(candidate):
-    return {instructor.name for instructor in candidate.instructors}
+def _candidate_has_instructor(candidate, instructor):
+    return any(
+        candidate_instructor is instructor
+        for candidate_instructor in candidate.instructors
+    )
 
 
 def _conflicts(first, second):
@@ -310,14 +393,14 @@ def _conflicts(first, second):
 
     return (
         _same_room_slot(first, second)
-        or first.group.name == second.group.name
+        or first.group is second.group
         or _has_instructor_overlap(first, second)
     )
 
 
 def _same_room_slot(first, second):
     return (
-        first.location.name == second.location.name
+        first.location is second.location
         and first.room_index == second.room_index
     )
 
@@ -334,13 +417,15 @@ def _overlaps(first, second):
 
 
 def _has_instructor_overlap(first, second):
-    first_names = {instructor.name for instructor in first.instructors}
-    second_names = {instructor.name for instructor in second.instructors}
-    return bool(first_names & second_names)
+    return any(
+        first_instructor is second_instructor
+        for first_instructor in first.instructors
+        for second_instructor in second.instructors
+    )
 
 
 def _has_travel_conflict(first, second):
-    if first.location.name == second.location.name:
+    if first.location is second.location:
         return False
     if not _has_instructor_overlap(first, second):
         return False
@@ -385,3 +470,54 @@ def _candidate_to_lesson(candidate):
         room_index=candidate.room_index,
         instructor_names=tuple(instructor.name for instructor in candidate.instructors),
     )
+
+
+def _assert_valid_solution(selected_candidates, spec):
+    for group in spec.groups:
+        lesson_count = sum(
+            candidate.group is group for candidate in selected_candidates
+        )
+        if lesson_count != group.lessons_per_week:
+            raise RuntimeError(
+                f"Solver returned {lesson_count} lessons for {group.name}; "
+                f"expected {group.lessons_per_week}"
+            )
+
+    for candidate in selected_candidates:
+        if not any(candidate.group is group for group in spec.groups):
+            raise RuntimeError("Solver returned a lesson for an unknown group")
+        if not any(candidate.location is location for location in spec.locations):
+            raise RuntimeError("Solver returned a lesson at an unknown location")
+        if candidate.room_index not in range(1, candidate.location.rooms_count + 1):
+            raise RuntimeError("Solver returned a lesson in an unknown room")
+        if not any(
+            candidate.lesson_block is lesson_block
+            for lesson_block in spec.lesson_blocks
+        ):
+            raise RuntimeError("Solver returned an unknown lesson block")
+        if len({id(instructor) for instructor in candidate.instructors}) != len(
+            candidate.instructors
+        ):
+            raise RuntimeError("Solver assigned the same instructor twice")
+        if len(candidate.instructors) != candidate.group.teachers_required:
+            raise RuntimeError("Solver returned the wrong number of instructors")
+        for instructor, role in zip(
+            candidate.instructors,
+            candidate.group.teacher_roles,
+        ):
+            if not any(instructor is item for item in spec.instructors):
+                raise RuntimeError("Solver returned an unknown instructor")
+            if role not in instructor.roles:
+                raise RuntimeError("Solver assigned an instructor to the wrong role")
+            if not instructor_can_teach_group(instructor, candidate.group):
+                raise RuntimeError("Solver assigned an ineligible instructor")
+            if not _covers_block(instructor, candidate.lesson_block):
+                raise RuntimeError("Solver assigned an unavailable instructor")
+        if len(candidate.instructors) == 2 and _pair_is_banned(
+            *candidate.instructors
+        ):
+            raise RuntimeError("Solver assigned a banned instructor pair")
+
+    for first, second in combinations(selected_candidates, 2):
+        if _conflicts(first, second):
+            raise RuntimeError("Solver returned conflicting lessons")

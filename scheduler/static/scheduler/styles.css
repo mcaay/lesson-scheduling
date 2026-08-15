@@ -513,8 +513,22 @@ textarea {
 
 @media (prefers-reduced-motion: reduce) {
     .solver-spinner {
-        animation-duration: 1.8s;
+        animation: none;
     }
+}
+
+.pending-page {
+    display: grid;
+    min-height: 60vh;
+    place-content: center;
+    justify-items: center;
+    gap: 14px;
+    text-align: center;
+}
+
+.pending-page p {
+    margin: 0;
+    color: var(--muted);
 }
 
 .schedule-grid {
@@ -583,6 +597,26 @@ textarea {
 .schedule-room-heading,
 .schedule-cell {
     border-left: 1px solid #ebe5da;
+}
+
+.schedule-cell-unavailable {
+    background: repeating-linear-gradient(
+        -45deg,
+        #f4f0e8,
+        #f4f0e8 8px,
+        #faf8f3 8px,
+        #faf8f3 16px
+    );
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
 }
 
 .schedule-table tbody tr + tr .schedule-time,

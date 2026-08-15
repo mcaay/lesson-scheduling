@@ -105,7 +105,8 @@ Never commit this file or put the secret in a systemd unit.
 Assume a new checkout at `/home/mcaay/<slug>`, a WSGI application named
 `<python_package>.wsgi:application`, and a hostname `<host>`.
 
-1. Create its own `.venv`, install application dependencies and `gunicorn`, and
+1. Create its own `.venv`, install the application with its committed
+   `requirements.lock` constraints (`pip install -c requirements.lock .`), and
    make Django settings read `DJANGO_SECRET_KEY`, `DJANGO_DEBUG`,
    `DJANGO_ALLOWED_HOSTS`, `DJANGO_CSRF_TRUSTED_ORIGINS`, and
    `DJANGO_STATIC_ROOT`. The `lesson-scheduling` settings are the reference.
