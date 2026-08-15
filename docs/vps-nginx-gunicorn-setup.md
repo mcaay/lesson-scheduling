@@ -1,4 +1,9 @@
-# VPS nginx + gunicorn setup notes
+# VPS nginx + gunicorn setup notes (historical)
+
+> The deployed, reusable runbook is now
+> [`multi-app-vps-runbook.md`](multi-app-vps-runbook.md). These original notes
+> are retained for context; do not copy their inline-secret examples for new
+> deployments.
 
 Target server: `167.233.147.146`
 
