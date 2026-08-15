@@ -58,6 +58,9 @@ def solve_schedule(spec):
     preference_terms.extend(
         _instructor_load_preference_terms(model, variables, candidates, spec.instructors)
     )
+    preference_terms.extend(
+        _instructor_gap_preference_terms(model, variables, candidates, spec.instructors)
+    )
     if preference_terms:
         model.Maximize(sum(preference_terms))
 
@@ -235,6 +238,65 @@ def _instructor_load_preference_terms(model, variables, candidates, instructors)
             excess >= lesson_count - instructor.preferred_max_classes_per_week
         )
         terms.extend([-10 * shortage, -10 * excess])
+    return terms
+
+
+def _instructor_gap_preference_terms(model, variables, candidates, instructors):
+    terms = []
+    for instructor_index, instructor in enumerate(instructors):
+        days = sorted(
+            {
+                candidate.lesson_block.time.day
+                for candidate in candidates
+                if instructor.name in _candidate_instructor_names(candidate)
+            }
+        )
+        for day_index, day in enumerate(days):
+            day_candidates = [
+                (index, candidate)
+                for index, candidate in enumerate(candidates)
+                if candidate.lesson_block.time.day == day
+                and instructor.name in _candidate_instructor_names(candidate)
+            ]
+            starts = [
+                to_slot(candidate.lesson_block.time.start)
+                for _index, candidate in day_candidates
+            ]
+            ends = [
+                to_slot(candidate.lesson_block.time.end)
+                for _index, candidate in day_candidates
+            ]
+            day_start = min(starts)
+            day_end = max(ends)
+            first_start = model.NewIntVar(
+                day_start,
+                day_end,
+                f"instructor_{instructor_index}_day_{day_index}_first_start",
+            )
+            last_end = model.NewIntVar(
+                day_start,
+                day_end,
+                f"instructor_{instructor_index}_day_{day_index}_last_end",
+            )
+            idle_slots = model.NewIntVar(
+                0,
+                day_end - day_start,
+                f"instructor_{instructor_index}_day_{day_index}_idle_slots",
+            )
+
+            duration_terms = []
+            for candidate_index, candidate in day_candidates:
+                variable = variables[candidate_index]
+                start = to_slot(candidate.lesson_block.time.start)
+                end = to_slot(candidate.lesson_block.time.end)
+                model.Add(first_start <= start).OnlyEnforceIf(variable)
+                model.Add(last_end >= end).OnlyEnforceIf(variable)
+                duration_terms.append((end - start) * variable)
+
+            model.Add(
+                idle_slots >= last_end - first_start - sum(duration_terms)
+            )
+            terms.append(-idle_slots)
     return terms
 
 
