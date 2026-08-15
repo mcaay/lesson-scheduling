@@ -55,7 +55,7 @@
                         <div class="editor-row" data-row>
                             <div class="field-grid lesson-block-grid">
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Days" field="lesson_block_days" example_1="Tuesday" example_2="Monday-Thursday" meaning="The day or consecutive range of days when this lesson block is available. Use Monday through Sunday." only %}
+                                    {% include "scheduler/_field_help.html" with label="Days" field="lesson_block_days" example_1="Tuesday" example_2="Monday-Thursday" meaning="Lesson blocks are the possible weekly slots in which the scheduler may place lessons. The day, start, and end together define one slot; add more lesson blocks for every other slot the school can use." only %}
                                     <input type="text" name="lesson_block_days" aria-label="Days" value="{{ block.days }}">
                                 </label>
                                 <label>
@@ -75,7 +75,7 @@
                         <div class="editor-row" data-row>
                             <div class="field-grid lesson-block-grid">
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Days" field="lesson_block_days" example_1="Tuesday" example_2="Monday-Thursday" meaning="The day or consecutive range of days when this lesson block is available. Use Monday through Sunday." only %}
+                                    {% include "scheduler/_field_help.html" with label="Days" field="lesson_block_days" example_1="Tuesday" example_2="Monday-Thursday" meaning="Lesson blocks are the possible weekly slots in which the scheduler may place lessons. The day, start, and end together define one slot; add more lesson blocks for every other slot the school can use." only %}
                                     <input type="text" name="lesson_block_days" aria-label="Days" value="Monday">
                                 </label>
                                 <label>
@@ -106,7 +106,7 @@
                                     <input type="text" name="location_name" aria-label="Location name" value="{{ location.name }}">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Number of rooms" field="location_rooms_count" example_1="1" example_2="3" meaning="How many interchangeable rooms are available at this location." only %}
+                                    {% include "scheduler/_field_help.html" with label="Number of rooms" field="location_rooms_count" example_1="1" example_2="3" meaning="How many interchangeable rooms are available at this location. The room size handling is not covered by this website. Typically schools while scheduling do not know how big particular groups will be. So the assignment of a group to a particular room is done later manually by a person." only %}
                                     <input type="number" name="location_rooms_count" aria-label="Number of rooms" min="1" value="{{ location.rooms_count }}">
                                 </label>
                                 {% include "scheduler/_remove_button.html" %}
@@ -122,7 +122,7 @@
                                     <input type="text" name="location_name" aria-label="Location name" value="">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Number of rooms" field="location_rooms_count" example_1="1" example_2="3" meaning="How many interchangeable rooms are available at this location." only %}
+                                    {% include "scheduler/_field_help.html" with label="Number of rooms" field="location_rooms_count" example_1="1" example_2="3" meaning="How many interchangeable rooms are available at this location. The room size handling is not covered by this website. Typically schools while scheduling do not know how big particular groups will be. So the assignment of a group to a particular room is done later manually by a person." only %}
                                     <input type="number" name="location_rooms_count" aria-label="Number of rooms" min="1" value="1">
                                 </label>
                                 {% include "scheduler/_remove_button.html" %}
@@ -160,7 +160,7 @@
                                     <input type="number" name="instructor_preferred_max_classes" aria-label="Preferred max classes" min="0" value="{{ instructor.preferred_max_classes_per_week }}">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Can teach levels" field="instructor_can_teach" example_1="Lindy Hop beginner" example_2="Lindy Hop beginner, Solo Jazz" meaning="The courses this instructor can teach. Use exact course names separated by commas. For a group such as Course #1, enter Course." only %}
+                                    {% include "scheduler/_field_help.html" with label="Can teach levels" field="instructor_can_teach" example_1="Lindy Hop beginner" example_2="Lindy Hop beginner, Solo Jazz" meaning="The courses this instructor can teach. Use exact course names separated by commas. Later on during the setup of Groups, some levels might have multiple parallel groups in the same week. E.g. Lindy Hop beginner level might have a Monday group, Wednesday group and Thursday group. In the Group setup this is differentiated by naming the groups Lindy Hop beginner #1, Lindy Hop beginner #2 and so on. Here in the teacher setup only write Lindy Hop beginner for such a case." only %}
                                     <input type="text" name="instructor_can_teach" aria-label="Can teach levels" value="{{ instructor.can_teach }}">
                                 </label>
                                 <label>
@@ -206,7 +206,7 @@
                                     <input type="number" name="instructor_preferred_max_classes" aria-label="Preferred max classes" min="0" value="3">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Can teach levels" field="instructor_can_teach" example_1="Lindy Hop beginner" example_2="Lindy Hop beginner, Solo Jazz" meaning="The courses this instructor can teach. Use exact course names separated by commas. For a group such as Course #1, enter Course." only %}
+                                    {% include "scheduler/_field_help.html" with label="Can teach levels" field="instructor_can_teach" example_1="Lindy Hop beginner" example_2="Lindy Hop beginner, Solo Jazz" meaning="The courses this instructor can teach. Use exact course names separated by commas. Later on during the setup of Groups, some levels might have multiple parallel groups in the same week. E.g. Lindy Hop beginner level might have a Monday group, Wednesday group and Thursday group. In the Group setup this is differentiated by naming the groups Lindy Hop beginner #1, Lindy Hop beginner #2 and so on. Here in the teacher setup only write Lindy Hop beginner for such a case." only %}
                                     <input type="text" name="instructor_can_teach" aria-label="Can teach levels" value="">
                                 </label>
                                 <label>
@@ -256,7 +256,7 @@
                                     <input type="text" name="group_teacher_roles" aria-label="Teacher roles needed" value="{{ group.teacher_roles }}">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Time windows" field="group_time_windows" example_1="Tuesday 18:00-21:00" example_2="Tuesday 18:00-21:00, Thursday 18:00-21:00" meaning="Optional times when this group can have a lesson. A lesson block must fit completely inside one of them. To require a specific block, enter its exact day and times." only %}
+                                    {% include "scheduler/_field_help.html" with label="Time windows" field="group_time_windows" example_1="Tuesday 18:00-21:00" example_2="Tuesday 18:00-21:00, Thursday 18:00-21:00" meaning='Time constraints for this group, e.g. "Tuesday 18:00-21:00" means this group must occur on Tuesday between 18:00 and 21:00. If you provide several time windows then this group must occur somewhere within any of those time windows.' only %}
                                     <input type="text" name="group_time_windows" aria-label="Time windows" value="{{ group.time_windows }}">
                                 </label>
                                 {% include "scheduler/_remove_button.html" %}
@@ -284,7 +284,7 @@
                                     <input type="text" name="group_teacher_roles" aria-label="Teacher roles needed" value="">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Time windows" field="group_time_windows" example_1="Tuesday 18:00-21:00" example_2="Tuesday 18:00-21:00, Thursday 18:00-21:00" meaning="Optional times when this group can have a lesson. A lesson block must fit completely inside one of them. To require a specific block, enter its exact day and times." only %}
+                                    {% include "scheduler/_field_help.html" with label="Time windows" field="group_time_windows" example_1="Tuesday 18:00-21:00" example_2="Tuesday 18:00-21:00, Thursday 18:00-21:00" meaning='Time constraints for this group, e.g. "Tuesday 18:00-21:00" means this group must occur on Tuesday between 18:00 and 21:00. If you provide several time windows then this group must occur somewhere within any of those time windows.' only %}
                                     <input type="text" name="group_time_windows" aria-label="Time windows" value="">
                                 </label>
                                 {% include "scheduler/_remove_button.html" %}

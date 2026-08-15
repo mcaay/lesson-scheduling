@@ -133,8 +133,13 @@ def test_editor_explains_every_input_with_tooltips(client):
     assert b"Default: leader, follower" not in response.content
     assert b"The roles this instructor can teach" in response.content
     assert b"Enter 0 here to disable the instructor" in response.content
-    assert b"Optional times when this group can have a lesson" in response.content
-    assert b"must fit completely inside one of them" in response.content
+    assert b"Lesson blocks are the possible weekly slots" in response.content
+    assert b"The room size handling is not covered by this website" in response.content
+    assert b"some levels might have multiple parallel groups" in response.content
+    assert b"Here in the teacher setup only write Lindy Hop beginner" in response.content
+    assert b"Time constraints for this group" in response.content
+    assert b"this group must occur somewhere within any of those time windows" in response.content
+    assert b"Optional times when this group can have a lesson" not in response.content
     assert b'tabindex="0"' in response.content
 
 
