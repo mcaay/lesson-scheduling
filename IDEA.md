@@ -43,7 +43,7 @@ Times use `HH:MM` on a 5-minute grid. A day may be singular (`Tuesday`) or an in
 
 ### Optimization
 
-Among valid schedules, prefer requested instructor pairs, avoid discouraged pairs, and keep each instructor near their preferred weekly minimum and maximum. A preferred maximum of `0` disables that instructor - this makes it possible to preserve the instructor parameters in the specification instead of deleting it, when that instructor will be absent in a given trimester.
+Among valid schedules, prefer requested instructor pairs, avoid discouraged pairs, minimize same-day instructor gaps, and keep workloads near their preferred weekly minimum and maximum. A preferred maximum of `0` disables an instructor without removing them from the specification, which is useful for a trimester-long absence.
 
 The solver may search for up to 120 seconds. If no complete schedule exists, report that the combined constraints are too tight. Syntax and independently detectable configuration errors should be reported before solving.
 
