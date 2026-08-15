@@ -42,3 +42,18 @@ def test_serializer_writes_human_readable_sections():
     assert "teacher roles solo" in serialized
     assert "style " not in serialized
     assert "level " not in serialized
+
+
+def test_serializer_writes_group_time_windows():
+    parsed = parse_spec(
+        """group LH1
+needs 1 lesson per week
+duration 85 minutes
+teacher roles leader, follower
+time window Monday 18:00-19:25
+"""
+    )
+
+    serialized = serialize_spec(parsed.spec)
+
+    assert "time window Monday 18:00-19:25" in serialized

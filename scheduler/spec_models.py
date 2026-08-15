@@ -77,6 +77,7 @@ class Group:
     lessons_per_week: int
     duration_minutes: int
     teacher_roles: tuple[str, ...] = ("leader",)
+    time_windows: tuple[TimeRange, ...] = ()
 
     @property
     def level_name(self):

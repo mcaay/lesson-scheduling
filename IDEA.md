@@ -1,244 +1,100 @@
 # Dance Lesson Scheduler
 
-Build a Python/Django web application for automatically scheduling dance classes for dance schools.
+A Django application that generates a recurring weekly timetable for dance schools with Google OR-Tools CP-SAT.
 
-This is not a general scheduling system for regular schools, universities, or training companies. The product is specifically and exclusively for dance schools.
+## Product
 
-## Core Idea
+- No accounts or saved scheduling records.
+- Users edit parameters in the GUI or edit the equivalent raw text specification.
+- The parsed raw specification is the solver's only input and the durable project file.
+- Users can import, download, and reopen UTF-8 `.txt` specifications.
+- Results are displayed as a weekly room timetable.
 
-The application lets a dance school owner describe a recurring weekly dance-class schedule problem, then generates the best valid weekly schedule using Google OR-Tools CP-SAT.
-
-The MVP is account-free and file-based:
-
-- the user does not need to create an account
-- the user enters scheduling data through a clean GUI
-- the app generates a human-readable English raw text specification from the GUI
-- the user can toggle to a "Raw spec" view and edit that text directly
-- the solver runs from the parsed specification
-- the generated schedule is viewable in the browser
-- to save work, the user downloads or copies the raw spec as a `.txt` file
-- later, the user can import or paste that spec back into the app and continue working
-
-The raw spec is the durable project file. The database must not be used to save user scheduling data in the MVP.
+The MVP excludes dates, holidays, cancellations, substitutions, one-off events, calendar export, and multi-school features.
 
 ## Stack
 
-- Python
-- Django
-- sqlite as the default Django database
+- Python, Django, and sqlite
+- Django templates, plain JavaScript, and CSS; no React
 - Google OR-Tools CP-SAT
-- Django templates at the start, no React
-- Tailwind, simple CSS, and plain JavaScript where needed
-- suitable for later deployment on a VPS
+- Function-based views and local parser, serializer, validator, and solver modules
 
-## MVP Scope
+## Scheduling Model
 
-The MVP schedules a recurring weekly timetable only.
+Users define:
 
-Included:
+- lesson blocks: the only times at which lessons may occur;
+- locations and their number of interchangeable rooms;
+- instructors, roles, course eligibility, availability, workload preferences, and pair preferences;
+- groups, weekly lesson count, duration, required teacher roles, and optional time windows.
 
-- explicit lesson blocks, for example `Monday-Thursday 18:00-19:25`
-- rooms and room capacities
-- instructors
-- instructor availability
-- dance styles and skill levels
-- groups and group sizes
-- lesson requirements
-- one-teacher and two-teacher lessons
-- instructor eligibility by style/level
-- hard instructor-pair bans
-- soft instructor-pair preferences
-- useful validation and conflict hints
-- browser view of the generated schedule
-- raw spec download
-- raw spec import or paste
+Times use `HH:MM` on a 5-minute grid. A day may be singular (`Tuesday`) or an inclusive range (`Monday-Thursday`). The solver never invents a start time outside the lesson blocks.
 
-Excluded:
+### Hard Constraints
 
-- user accounts
-- login
-- school accounts
-- multi-school tenancy
-- saving specs or schedules to the application database
-- calendar dates
-- holidays
-- cancellations
-- substitutions
-- one-off events
-- exporting generated schedules to another file format
-- React
-- enterprise features
+- Every group receives exactly its required number of weekly lessons.
+- A lesson block must equal the group's duration.
+- A group time window, when present, must fully contain the lesson block.
+- Every instructor must be eligible, have the required role, and be available for the full block.
+- A room, group, or instructor cannot occupy overlapping lessons.
+- Two-role lessons use two distinct instructors and respect pair bans.
+- An instructor needs at least 60 minutes between lessons at different locations.
 
-## User Workflow
+### Optimization
 
-1. Open the app.
-2. Enter scheduling data in structured forms.
-3. Optionally toggle "Raw spec" and edit the generated text directly.
-4. Validate the input.
-5. Run the scheduler.
-6. View the generated weekly schedule.
-7. Adjust forms or raw spec.
-8. Run again.
-9. Download or copy the raw spec to save the work.
-10. Later, import or paste the saved spec to continue.
+Among valid schedules, prefer requested instructor pairs, avoid discouraged pairs, and keep each instructor near their preferred weekly minimum and maximum. A preferred maximum of `0` disables that instructor - this makes it possible to preserve the instructor parameters in the specification instead of deleting it, when that instructor will be absent in a given trimester.
 
-## Raw Spec
+The solver may search for up to 120 seconds. If no complete schedule exists, report that the combined constraints are too tight. Syntax and independently detectable configuration errors should be reported before solving.
 
-The raw spec should be human-readable English text, not XML and not a database dump.
-
-The format should be strict enough to parse reliably, but simple enough for a dance school owner to read and lightly edit.
-
-Example direction:
+## Raw Specification
 
 ```text
 lesson blocks
 Monday-Thursday 18:00-19:25
 Monday-Thursday 19:30-20:55
-Monday-Thursday 21:00-22:25
 
-room Main Hall
+location Main Studio
+rooms 2
 
 instructor Anna
-can teach Lindy Hop beginner, Solo Jazz beginner
-available Monday-Thursday 17:00-22:30
-prefers teaching with Ivona
-cannot teach with Ana
+roles follower
+prefers minimum 1 class per week
+prefers maximum 3 classes per week
+can teach Lindy Hop beginner
+available Tuesday 18:00-21:00
+available Thursday 18:00-21:00
+prefers teaching with Jan
 
-group Lindy Hop 1
+instructor Jan
+roles leader
+can teach Lindy Hop beginner
+available Monday-Thursday 17:00-22:30
+
+group Lindy Hop beginner #1
 needs 1 lesson per week
 duration 85 minutes
 teacher roles leader, follower
+time window Tuesday 18:00-21:00
+time window Thursday 18:00-21:00
 ```
 
-The app should support both directions:
+Rules:
 
-- forms generate the raw spec
-- raw spec edits are parsed back into form state
+- Repeated `available` lines are alternatives (OR).
+- Repeated `time window` lines are alternatives (OR).
+- Without a `time window`, a group may use any otherwise valid lesson block.
+- A window equal to one lesson block fixes the group to that block.
+- Comma-separated GUI availability and time-window values become repeated raw-spec lines.
+- A group suffix such as `#1` identifies an instance; instructor eligibility is matched against the name without that suffix.
+- Supported roles are `leader`, `follower`, and `solo`; a group requires one or two roles.
+- Instructor defaults are roles `leader, follower`, preferred minimum `1`, and preferred maximum `3`.
+- Names referenced by pair preferences must identify declared instructors.
 
-If the raw spec has syntax or validation errors, the app should show line-based errors and should not run the solver until the input is fixed.
+Invalid syntax is reported by line. The solver runs only after parsing and validation succeed.
 
-## Scheduling Model
+## Engineering Boundaries
 
-The user defines explicit lesson blocks. The solver assigns required lessons to those blocks.
-
-All times use `HH:MM` in the spec and are normalized internally to a 5-minute grid.
-
-Each lesson requirement has a fixed duration chosen by the user. Typical schools may use blocks such as:
-
-- 18:00-19:25
-- 19:30-20:55
-- 21:00-22:25
-
-The solver should not invent arbitrary lesson starts outside the defined lesson blocks.
-
-## Domain Examples
-
-- the `Lindy Hop 1` group needs 1 lesson per week
-- instructor Anna can teach `Lindy Hop beginner`
-- Anna is available Monday-Thursday from 17:00 to 22:30
-- the group has 24 people
-- one room cannot host two classes at the same time
-- one instructor cannot teach two classes at the same time
-- one group cannot have two classes at the same time
-- a pair dance can require two teachers
-- a solo dance can require one teacher
-- some instructor pairs are banned
-- some instructor pairs are preferred
-
-## Hard Constraints
-
-- every required lesson must be scheduled
-- no room conflicts
-- no instructor conflicts
-- no group conflicts
-- classes must use an explicit lesson block
-- the block must fit instructor availability
-- assigned instructors must be eligible to teach the group's named course
-- lessons requiring two teachers must receive two instructors
-- hard instructor-pair bans must be respected
-
-## Soft Preferences
-
-Soft preferences improve the schedule but should not make the MVP overcomplicated.
-
-Important preferences:
-
-- respect positive instructor-pair preferences
-- avoid negative instructor-pair preferences
-- avoid very late slots when reasonable
-- batch instructor lessons when reasonable
-- reduce instructor gaps when reasonable
-- prefer evening hours for adult groups when reasonable
-
-If a preference is difficult, keep the solver simple and document the limitation instead of overbuilding the MVP.
-
-## Validation And Hints
-
-Before solving, the app should catch clear problems:
-
-- invalid raw spec syntax
-- unknown names
-- invalid times
-- lesson block duration mismatches
-- groups too large for every room
-- required lessons with no eligible instructor
-- required lessons with no available lesson block
-- two-teacher requirements with too few eligible instructors
-- pair bans that make a lesson impossible
-
-If validation passes but CP-SAT finds no solution, the app should explain that the individual inputs are valid but the combined constraints are too tight. It should suggest practical next moves, such as adding lesson blocks, relaxing availability, adding rooms, or loosening hard pair bans.
-
-## Application Structure Direction
-
-Keep the backend simple and Django-native:
-
-- function-based views only
-- Django templates
-- plain forms and small JavaScript helpers
-- no React
-- no microservices
-- local parser/serializer code for the raw spec
-- local solver module wrapping OR-Tools
-- tests around parser, validation, serializer, and solver behavior
-
-The Django database exists because this is a Django project using sqlite, but MVP scheduling data should live in submitted form/spec data, not persisted business tables.
-
-## Implementation Direction
-
-Do not code everything at once.
-
-First prepare:
-
-1. the raw spec grammar and examples
-2. parser and serializer
-3. validation layer
-4. simple GUI form flow
-5. raw spec toggle and import/download
-6. first CP-SAT solver that finds a valid schedule
-7. schedule result view
-8. useful failure hints
-9. focused tests
-
-Then iterate from the simplest usable form-first scheduling loop:
-
-1. enter a small schedule through forms
-2. inspect the generated raw spec
-3. validate it
-4. solve it
-5. view the weekly schedule
-6. tweak forms or raw spec
-7. run again
-8. download the spec
-
-## Important Principles
-
-- keep the code simple and readable
-- keep the saved artifact human-readable
-- keep the MVP account-free
-- do not save user scheduling data in the database
-- do not introduce React at the start
-- do not design the system for enterprises
-- solver input should come from the parsed raw spec
-- if a constraint is difficult, simplify it instead of overcomplicating the MVP
-
-Start with the design and implementation plan, not with product code.
+- Keep scheduling data in submitted form/spec data, not business tables.
+- Keep templates simple and computation in Python modules.
+- Prefer direct, readable code and focused parser, serializer, validation, solver, and GUI tests.
+- Add only constraints required by real dance-school workflows.

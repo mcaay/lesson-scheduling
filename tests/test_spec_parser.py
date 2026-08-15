@@ -76,6 +76,28 @@ def test_parse_instructor_class_preferences_default_to_one_and_three():
     assert result.spec.instructors[0].preferred_max_classes_per_week == 3
 
 
+def test_parse_group_time_windows():
+    result = parse_spec(
+        """group LH1
+needs 1 lesson per week
+duration 85 minutes
+teacher roles leader, follower
+time window Monday-Tuesday 17:00-22:30
+time window Thursday 18:00-21:00
+"""
+    )
+
+    assert result.is_valid
+    assert [
+        (window.day, window.start, window.end)
+        for window in result.spec.groups[0].time_windows
+    ] == [
+        ("Monday", "17:00", "22:30"),
+        ("Tuesday", "17:00", "22:30"),
+        ("Thursday", "18:00", "21:00"),
+    ]
+
+
 def test_parse_reports_unknown_line_with_number():
     result = parse_spec("lesson blocks\nMonday 18:00-19:25\nnonsense")
 

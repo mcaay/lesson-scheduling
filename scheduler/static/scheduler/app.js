@@ -20,6 +20,12 @@
         }
     }
 
+    function pushRepeatedField(lines, prefix, value) {
+        value.split(/[,\n]/).forEach(function (part) {
+            pushField(lines, prefix, part.trim());
+        });
+    }
+
     function pushPluralField(lines, prefix, value, singular, pluralText) {
         if (value.trim()) {
             lines.push(prefix + value + plural(value, singular, pluralText));
@@ -88,7 +94,7 @@
             pushPluralField(lines, "prefers minimum ", minClasses, " class per week", " classes per week");
             pushPluralField(lines, "prefers maximum ", maxClasses, " class per week", " classes per week");
             pushField(lines, "can teach ", canTeach);
-            pushField(lines, "available ", available);
+            pushRepeatedField(lines, "available ", available);
             pushField(lines, "prefers teaching with ", prefersWith);
             pushField(lines, "avoids teaching with ", avoidsWith);
             pushField(lines, "cannot teach with ", cannotTeachWith);
@@ -99,7 +105,8 @@
             var lessons = valueAt(form, "group_lessons_per_week", index);
             var duration = valueAt(form, "group_duration_minutes", index);
             var teacherRoles = valueAt(form, "group_teacher_roles", index);
-            if (!hasAnyValue([name, lessons, duration, teacherRoles])) {
+            var timeWindows = valueAt(form, "group_time_windows", index);
+            if (!hasAnyValue([name, lessons, duration, teacherRoles, timeWindows])) {
                 return;
             }
             lines.push("");
@@ -107,6 +114,7 @@
             pushPluralField(lines, "needs ", lessons, " lesson per week", " lessons per week");
             pushPluralField(lines, "duration ", duration, " minute", " minutes");
             pushField(lines, "teacher roles ", teacherRoles);
+            pushRepeatedField(lines, "time window ", timeWindows);
         });
 
         return lines.join("\n") + "\n";
@@ -276,10 +284,34 @@
         });
     }
 
+    function installSolverLoading(documentScope) {
+        var scope = documentScope || document;
+        var loading = scope.querySelector("[data-solver-loading]");
+
+        if (!loading || !scope.querySelectorAll) {
+            return;
+        }
+
+        Array.from(scope.querySelectorAll("[data-solver-form]")).forEach(function (form) {
+            form.addEventListener("submit", function (event) {
+                var submitter = event.submitter;
+                if (submitter && !submitter.hasAttribute("data-run-scheduler")) {
+                    return;
+                }
+
+                loading.removeAttribute("hidden");
+                if (submitter) {
+                    submitter.disabled = true;
+                }
+            });
+        });
+    }
+
     root.ScheduleEditor = {
         addRow: addRow,
         buildSpec: buildSpec,
         installEditor: installEditor,
+        installSolverLoading: installSolverLoading,
         removeRow: removeRow,
         shouldBuildSpec: shouldBuildSpec
     };
@@ -287,6 +319,7 @@
     if (typeof document !== "undefined") {
         document.addEventListener("DOMContentLoaded", function () {
             installEditor(document);
+            installSolverLoading(document);
         });
     }
 }(typeof window !== "undefined" ? window : globalThis));

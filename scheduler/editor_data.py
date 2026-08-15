@@ -42,6 +42,7 @@ def build_editor_data(raw_spec):
                 "lessons_per_week": group.lessons_per_week,
                 "duration_minutes": group.duration_minutes,
                 "teacher_roles": _join(group.teacher_roles),
+                "time_windows": _join_time_ranges(group.time_windows),
             }
             for group in result.spec.groups
         ],

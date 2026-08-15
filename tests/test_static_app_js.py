@@ -179,6 +179,69 @@ assert(!generated.includes("group \\n"), "empty group rows should not be emitted
     )
 
 
+def test_editor_javascript_splits_multiple_instructor_availability_ranges():
+    run_app_js(
+        """
+const generated = ScheduleEditor.buildSpec(formFromFields({
+    lesson_block_days: [],
+    lesson_block_start: [],
+    lesson_block_end: [],
+    location_name: [],
+    location_rooms_count: [],
+    instructor_name: [element("Anna")],
+    instructor_roles: [element("leader")],
+    instructor_preferred_min_classes: [element("1")],
+    instructor_preferred_max_classes: [element("3")],
+    instructor_can_teach: [element("Lindy Hop beginner")],
+    instructor_available: [element("Monday-Tuesday 17:00-22:30, Thursday 18:00-21:00")],
+    instructor_prefers_with: [element("")],
+    instructor_avoids_with: [element("")],
+    instructor_cannot_teach_with: [element("")],
+    group_name: [],
+    group_lessons_per_week: [],
+    group_duration_minutes: [],
+    group_teacher_roles: []
+}));
+
+assert(generated.includes("available Monday-Tuesday 17:00-22:30"), "first range should be emitted");
+assert(generated.includes("available Thursday 18:00-21:00"), "second range should be emitted");
+assert(!generated.includes("available Monday-Tuesday 17:00-22:30, Thursday"), "ranges should not stay on one raw line");
+"""
+    )
+
+
+def test_editor_javascript_splits_multiple_group_time_windows():
+    run_app_js(
+        """
+const generated = ScheduleEditor.buildSpec(formFromFields({
+    lesson_block_days: [],
+    lesson_block_start: [],
+    lesson_block_end: [],
+    location_name: [],
+    location_rooms_count: [],
+    instructor_name: [],
+    instructor_roles: [],
+    instructor_preferred_min_classes: [],
+    instructor_preferred_max_classes: [],
+    instructor_can_teach: [],
+    instructor_available: [],
+    instructor_prefers_with: [],
+    instructor_avoids_with: [],
+    instructor_cannot_teach_with: [],
+    group_name: [element("LH1")],
+    group_lessons_per_week: [element("1")],
+    group_duration_minutes: [element("85")],
+    group_teacher_roles: [element("leader, follower")],
+    group_time_windows: [element("Monday 18:00-19:25, Thursday 18:00-21:00")]
+}));
+
+assert(generated.includes("time window Monday 18:00-19:25"), "first window should be emitted");
+assert(generated.includes("time window Thursday 18:00-21:00"), "second window should be emitted");
+assert(!generated.includes("time window Monday 18:00-19:25, Thursday"), "windows should not stay on one raw line");
+"""
+    )
+
+
 def test_editor_javascript_live_syncs_gui_changes_until_raw_spec_is_edited():
     run_app_js(
         """
@@ -245,5 +308,49 @@ fields.location_name[0].value = "Small Hall";
 fields.location_name[0].listeners.input({target: fields.location_name[0]});
 assert(rawSpec.value === "manual spec", "manual raw spec edits should be authoritative");
 assert(rawStatus.textContent.includes("Raw spec edited manually"), "manual mode should be visible");
+"""
+    )
+
+
+def test_editor_javascript_shows_loading_only_for_solver_submissions():
+    run_app_js(
+        """
+const loading = element("");
+loading.hidden = true;
+const form = {
+    listeners: {},
+    addEventListener: function (eventName, callback) {
+        this.listeners[eventName] = callback;
+    }
+};
+const scope = {
+    querySelector: function (selector) {
+        return selector === "[data-solver-loading]" ? loading : null;
+    },
+    querySelectorAll: function (selector) {
+        return selector === "[data-solver-form]" ? [form] : [];
+    }
+};
+const runButton = {
+    disabled: false,
+    hasAttribute: function (name) {
+        return name === "data-run-scheduler";
+    }
+};
+const saveButton = {
+    disabled: false,
+    hasAttribute: function () {
+        return false;
+    }
+};
+
+ScheduleEditor.installSolverLoading(scope);
+form.listeners.submit({submitter: saveButton});
+assert(loading.hidden === true, "saving should not show solver loading");
+assert(saveButton.disabled === false, "saving should stay enabled");
+
+form.listeners.submit({submitter: runButton});
+assert(loading.hidden === false, "running should show solver loading");
+assert(runButton.disabled === true, "run button should be disabled after submission");
 """
     )

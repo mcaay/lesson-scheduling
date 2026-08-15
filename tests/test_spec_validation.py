@@ -182,6 +182,18 @@ def test_validation_rejects_no_matching_duration_block():
     )
 
 
+def test_validation_rejects_no_matching_group_time_window():
+    text = TWO_TEACHER_SPEC + "time window Tuesday 18:00-19:25\n"
+    result = parse_spec(text)
+
+    errors = validate_spec(result.spec)
+
+    assert (
+        errors[0].message
+        == "Group LH1 has no lesson block that matches duration and instructor availability"
+    )
+
+
 def test_validation_rejects_missing_follower_role():
     text = TWO_TEACHER_SPEC.replace("roles follower", "roles leader")
     result = parse_spec(text)

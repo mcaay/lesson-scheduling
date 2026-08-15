@@ -12,5 +12,10 @@
         <main>
             {% block content %}{% endblock %}
         </main>
+        <div class="solver-loading" data-solver-loading role="status" aria-live="polite" hidden>
+            <span class="solver-spinner" aria-hidden="true"></span>
+            <strong>Finding the best schedule...</strong>
+            <span>This may take up to 2 minutes.</span>
+        </div>
     </body>
 </html>

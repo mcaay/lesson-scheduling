@@ -17,15 +17,8 @@ def serialize_spec(spec):
         lines.append("")
 
     for group in spec.groups:
-        lines.extend(
-            [
-                f"group {group.name}",
-                f"needs {group.lessons_per_week} lesson per week",
-                f"duration {group.duration_minutes} minutes",
-                f"teacher roles {', '.join(group.teacher_roles)}",
-                "",
-            ]
-        )
+        lines.extend(_group_lines(group))
+        lines.append("")
 
     return "\n".join(lines).strip() + "\n"
 
@@ -67,6 +60,20 @@ def _instructor_lines(instructor):
         lines.append(f"avoids teaching with {', '.join(instructor.avoids_with)}")
     if instructor.cannot_teach_with:
         lines.append(f"cannot teach with {', '.join(instructor.cannot_teach_with)}")
+    return lines
+
+
+def _group_lines(group):
+    lines = [
+        f"group {group.name}",
+        f"needs {group.lessons_per_week} lesson per week",
+        f"duration {group.duration_minutes} minutes",
+        f"teacher roles {', '.join(group.teacher_roles)}",
+    ]
+    for time_window in group.time_windows:
+        lines.append(
+            f"time window {time_window.day} {time_window.start}-{time_window.end}"
+        )
     return lines
 
 

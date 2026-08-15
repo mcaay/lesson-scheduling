@@ -138,6 +138,16 @@ def test_editor_save_work_button_downloads_spec(client):
     assert b"Download spec" not in response.content
 
 
+def test_editor_shows_solver_loading_state(client):
+    response = client.get(reverse("scheduler:editor"))
+
+    assert response.status_code == 200
+    assert b"data-solver-form" in response.content
+    assert b"data-run-scheduler" in response.content
+    assert b"data-solver-loading" in response.content
+    assert b"This may take up to 2 minutes." in response.content
+
+
 def test_import_spec_file_loads_editor(client):
     upload = SimpleUploadedFile(
         "schedule.txt", EXAMPLE_SPEC.encode("utf-8"), content_type="text/plain"

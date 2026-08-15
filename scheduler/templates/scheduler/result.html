@@ -53,14 +53,14 @@
         </ul>
     {% endif %}
 
-    <form method="post" action="{% url 'scheduler:run' %}">
+    <form method="post" action="{% url 'scheduler:run' %}" data-solver-form>
         {% csrf_token %}
         <section>
             <h2>Raw spec</h2>
             {{ form.raw_spec }}
         </section>
         <p>
-            <button type="submit">Run again</button>
+            <button type="submit" data-run-scheduler>Run again</button>
             <button type="submit" formaction="{% url 'scheduler:download_spec' %}">Save work</button>
             <button type="submit" formaction="{% url 'scheduler:editor' %}">Back to editor</button>
         </p>

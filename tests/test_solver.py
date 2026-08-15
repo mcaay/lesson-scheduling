@@ -1,7 +1,16 @@
 from scheduler.examples import EXAMPLE_SPEC
-from scheduler.solver import _Candidate, _conflicts, solve_schedule
+from scheduler.solver import (
+    SOLVER_TIME_LIMIT_SECONDS,
+    _Candidate,
+    _conflicts,
+    solve_schedule,
+)
 from scheduler.spec_models import Group, Instructor, LessonBlock, Location, TimeRange
 from scheduler.spec_parser import parse_spec
+
+
+def test_solver_has_two_minute_time_limit():
+    assert SOLVER_TIME_LIMIT_SECONDS == 120
 
 
 def test_solver_finds_schedule_for_example_spec():
@@ -183,6 +192,32 @@ teacher roles leader
     assert result.solved
     assert len(result.lessons) == 2
     assert {lesson.start for lesson in result.lessons} == {"18:00", "19:30"}
+
+
+def test_solver_restricts_group_to_time_window():
+    text = """lesson blocks
+Monday 18:00-19:00
+Monday 19:00-20:00
+
+location Main Hall
+rooms 1
+instructor Anna
+roles leader
+can teach Lindy Hop beginner
+available Monday 17:00-22:00
+
+group Lindy Hop beginner #1
+needs 1 lesson per week
+duration 60 minutes
+teacher roles leader
+time window Monday 19:00-20:00
+"""
+    spec = parse_spec(text).spec
+
+    result = solve_schedule(spec)
+
+    assert result.solved
+    assert result.lessons[0].start == "19:00"
 
 
 def test_solver_allows_three_consecutive_classes_in_same_location():

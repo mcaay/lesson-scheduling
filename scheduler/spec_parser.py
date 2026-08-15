@@ -83,6 +83,7 @@ def parse_spec(text):
                         lessons_per_week=item["lessons_per_week"],
                         duration_minutes=item["duration_minutes"],
                         teacher_roles=tuple(item["teacher_roles"]),
+                        time_windows=tuple(item["time_windows"]),
                     )
                 )
 
@@ -134,6 +135,7 @@ def parse_spec(text):
                 "lessons_per_week": None,
                 "duration_minutes": None,
                 "teacher_roles": None,
+                "time_windows": [],
             }
             continue
 
@@ -257,6 +259,13 @@ def parse_group_field(group, line, line_number, errors):
         )
     elif line.startswith("teacher roles "):
         group["teacher_roles"] = parse_list(line.removeprefix("teacher roles "))
+    elif line.startswith("time window "):
+        add_ranges(
+            group["time_windows"],
+            line.removeprefix("time window ").strip(),
+            line_number,
+            errors,
+        )
     else:
         errors.append(SpecError(line_number, f"Unknown line: {line}"))
 

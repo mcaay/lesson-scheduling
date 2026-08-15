@@ -146,6 +146,8 @@ def _pair_is_banned(first, second):
 
 def _has_matching_lesson_block(lesson_blocks, group, eligible_instructors):
     for lesson_block in lesson_blocks:
+        if not _group_allows_block(group, lesson_block):
+            continue
         if lesson_block.duration_minutes != group.duration_minutes:
             continue
 
@@ -165,6 +167,17 @@ def _has_matching_lesson_block(lesson_blocks, group, eligible_instructors):
             return True
 
     return False
+
+
+def _group_allows_block(group, lesson_block):
+    if not group.time_windows:
+        return True
+    return any(
+        time_window.day == lesson_block.time.day
+        and to_slot(time_window.start) <= to_slot(lesson_block.time.start)
+        and to_slot(time_window.end) >= to_slot(lesson_block.time.end)
+        for time_window in group.time_windows
+    )
 
 
 def _instructor_covers_block(instructor, lesson_block):

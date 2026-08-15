@@ -36,7 +36,7 @@
             <a href="#groups">Groups</a>
         </nav>
 
-        <form class="editor-form" method="post" action="{% url 'scheduler:run' %}" data-spec-form>
+        <form class="editor-form" method="post" action="{% url 'scheduler:run' %}" data-spec-form data-solver-form>
             {% csrf_token %}
 
             <div class="editor-tabs" role="tablist" aria-label="Editor mode">
@@ -255,6 +255,10 @@
                                     Teacher roles needed
                                     <input type="text" name="group_teacher_roles" value="{{ group.teacher_roles }}">
                                 </label>
+                                <label>
+                                    Time windows
+                                    <input type="text" name="group_time_windows" value="{{ group.time_windows }}">
+                                </label>
                                 {% include "scheduler/_remove_button.html" %}
                             </div>
                         </div>
@@ -278,6 +282,10 @@
                                 <label>
                                     Teacher roles needed
                                     <input type="text" name="group_teacher_roles" value="">
+                                </label>
+                                <label>
+                                    Time windows
+                                    <input type="text" name="group_time_windows" value="">
                                 </label>
                                 {% include "scheduler/_remove_button.html" %}
                             </div>
@@ -306,7 +314,7 @@
             </div>
 
             <div class="form-actions">
-                <button type="submit">Run scheduler</button>
+                <button type="submit" data-run-scheduler>Run scheduler</button>
                 <button type="submit" formaction="{% url 'scheduler:download_spec' %}">Save work</button>
             </div>
         </form>

@@ -104,6 +104,38 @@ prefers maximum 3 classes per week
 can teach Blues od podstaw, Blues kontynuacja
 available Monday-Thursday 18:00-22:30
 
+instructor Basia
+roles follower
+prefers minimum 1 class per week
+prefers maximum 3 classes per week
+can teach Boogie Shakers 1, Boogie Killers 2A, Boogie Killers 2B, Boogie Dealers, Boogie Masters
+available Monday-Thursday 18:00-22:30
+prefers teaching with Kewin
+
+instructor Kewin
+roles leader
+prefers minimum 1 class per week
+prefers maximum 3 classes per week
+can teach Boogie Shakers 1, Boogie Killers 2A, Boogie Killers 2B, Boogie Dealers, Boogie Masters
+available Monday-Thursday 18:00-22:30
+prefers teaching with Basia
+
+instructor Roland
+roles leader
+prefers minimum 1 class per week
+prefers maximum 3 classes per week
+can teach Turbo Turtle 1, Speedy Gonzales, Crazy Rabbit
+available Monday-Thursday 18:00-22:30
+prefers teaching with Ola
+
+instructor Ola
+roles follower
+prefers minimum 1 class per week
+prefers maximum 3 classes per week
+can teach Turbo Turtle 1, Speedy Gonzales, Crazy Rabbit
+available Monday-Thursday 18:00-22:30
+prefers teaching with Roland
+
 group Let's Start 1 #1
 needs 1 lesson per week
 duration 85 minutes
@@ -178,6 +210,7 @@ group Let's Play
 needs 1 lesson per week
 duration 85 minutes
 teacher roles leader, follower
+time window Wednesday 18:00-19:25
 
 group Charleston Flow
 needs 1 lesson per week

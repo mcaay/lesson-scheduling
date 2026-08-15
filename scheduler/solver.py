@@ -8,6 +8,7 @@ from scheduler.spec_models import instructor_can_teach_group, to_slot
 
 UNSOLVED_MESSAGE = "No complete schedule found. The combined constraints are too tight."
 MIN_TRAVEL_MINUTES_BETWEEN_LOCATIONS = 60
+SOLVER_TIME_LIMIT_SECONDS = 120
 
 
 @dataclass(frozen=True)
@@ -61,7 +62,7 @@ def solve_schedule(spec):
         model.Maximize(sum(preference_terms))
 
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = 5
+    solver.parameters.max_time_in_seconds = SOLVER_TIME_LIMIT_SECONDS
     status = solver.Solve(model)
 
     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
@@ -89,6 +90,8 @@ def _build_candidates(spec):
 def _build_location_room_candidates(group, location, room_index, spec):
     candidates = []
     for lesson_block in spec.lesson_blocks:
+        if not _group_allows_block(group, lesson_block):
+            continue
         if lesson_block.duration_minutes != group.duration_minutes:
             continue
         for instructors in _instructor_choices(
@@ -105,6 +108,17 @@ def _build_location_room_candidates(group, location, room_index, spec):
                 )
             )
     return candidates
+
+
+def _group_allows_block(group, lesson_block):
+    if not group.time_windows:
+        return True
+    return any(
+        time_window.day == lesson_block.time.day
+        and to_slot(time_window.start) <= to_slot(lesson_block.time.start)
+        and to_slot(time_window.end) >= to_slot(lesson_block.time.end)
+        for time_window in group.time_windows
+    )
 
 
 def _instructor_choices(instructors, group, lesson_block):
