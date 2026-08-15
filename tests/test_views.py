@@ -145,7 +145,61 @@ def test_editor_shows_solver_loading_state(client):
     assert b"data-solver-form" in response.content
     assert b"data-run-scheduler" in response.content
     assert b"data-solver-loading" in response.content
-    assert b"This may take up to 2 minutes." in response.content
+    assert b"Large schedules can take several minutes." in response.content
+
+
+def test_ajax_solver_returns_job_and_renders_completed_result(
+    client,
+    monkeypatch,
+    settings,
+    tmp_path,
+):
+    class ImmediateExecutor:
+        def submit(self, function, *args):
+            function(*args)
+
+    settings.SOLVER_JOB_DIRECTORY = tmp_path
+    monkeypatch.setattr("scheduler.solve_jobs._executor", ImmediateExecutor())
+
+    response = client.post(
+        reverse("scheduler:run"),
+        {"raw_spec": EXAMPLE_SPEC},
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+
+    assert response.status_code == 202
+    status_response = client.get(response.json()["status_url"])
+    assert status_response.json()["status"] == "complete"
+
+    result_response = client.get(status_response.json()["result_url"])
+    assert result_response.status_code == 200
+    assert b"Generated schedule" in result_response.content
+    assert b"LH1" in result_response.content
+
+
+def test_ajax_solver_returns_validation_errors_through_result_page(
+    client,
+    monkeypatch,
+    settings,
+    tmp_path,
+):
+    class ImmediateExecutor:
+        def submit(self, function, *args):
+            function(*args)
+
+    settings.SOLVER_JOB_DIRECTORY = tmp_path
+    monkeypatch.setattr("scheduler.solve_jobs._executor", ImmediateExecutor())
+
+    response = client.post(
+        reverse("scheduler:run"),
+        {"raw_spec": "group Broken"},
+        HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+    )
+    status_response = client.get(response.json()["status_url"])
+
+    assert status_response.json()["status"] == "invalid"
+    result_response = client.get(status_response.json()["result_url"])
+    assert b"Group Broken is missing lessons per week" in result_response.content
 
 
 def test_import_spec_file_loads_editor(client):

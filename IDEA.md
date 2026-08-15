@@ -4,11 +4,12 @@ A Django application that generates a recurring weekly timetable for dance schoo
 
 ## Product
 
-- No accounts or saved scheduling records.
+- No accounts or permanent scheduling records.
 - Users edit parameters in the GUI or edit the equivalent raw text specification.
 - The parsed raw specification is the solver's only input and the durable project file.
 - Users can import, download, and reopen UTF-8 `.txt` specifications.
 - Results are displayed as a weekly room timetable.
+- Solves run as background jobs; the browser polls their status with short requests.
 
 The MVP excludes dates, holidays, cancellations, substitutions, one-off events, calendar export, and multi-school features.
 

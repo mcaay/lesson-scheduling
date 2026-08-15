@@ -303,8 +303,65 @@
                 if (submitter) {
                     submitter.disabled = true;
                 }
+                if (!root.fetch || !root.FormData) {
+                    return;
+                }
+
+                event.preventDefault();
+                root.fetch(form.action, {
+                    method: "POST",
+                    body: new root.FormData(form),
+                    headers: {"X-Requested-With": "XMLHttpRequest"}
+                })
+                    .then(responseJson)
+                    .then(function (data) {
+                        pollSolveJob(data.status_url, loading, submitter);
+                    })
+                    .catch(function () {
+                        restoreAfterSolveError(loading, submitter);
+                    });
             });
         });
+    }
+
+    function pollSolveJob(statusUrl, loading, submitter) {
+        root.fetch(statusUrl, {
+            headers: {"X-Requested-With": "XMLHttpRequest"}
+        })
+            .then(responseJson)
+            .then(function (data) {
+                if (data.status === "pending") {
+                    root.setTimeout(function () {
+                        pollSolveJob(statusUrl, loading, submitter);
+                    }, 1000);
+                    return;
+                }
+                if (data.result_url) {
+                    root.location.assign(data.result_url);
+                    return;
+                }
+                restoreAfterSolveError(loading, submitter);
+            })
+            .catch(function () {
+                restoreAfterSolveError(loading, submitter);
+            });
+    }
+
+    function responseJson(response) {
+        if (!response.ok) {
+            throw new Error("Schedule request failed");
+        }
+        return response.json();
+    }
+
+    function restoreAfterSolveError(loading, submitter) {
+        loading.setAttribute("hidden", "");
+        if (submitter) {
+            submitter.disabled = false;
+        }
+        if (root.alert) {
+            root.alert("The scheduler could not be reached. Please try again.");
+        }
     }
 
     root.ScheduleEditor = {

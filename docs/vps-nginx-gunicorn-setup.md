@@ -105,7 +105,6 @@ ExecStart=/home/mcaay/lesson-scheduling/.venv/bin/gunicorn \
     lesson_scheduling.wsgi:application \
     --bind unix:/run/lesson-scheduling/gunicorn.sock \
     --workers 2 \
-    --timeout 180 \
     --access-logfile - \
     --error-logfile -
 ExecReload=/bin/kill -s HUP $MAINPID
@@ -163,11 +162,12 @@ server {
 
     location / {
         include proxy_params;
-        proxy_read_timeout 180s;
         proxy_pass http://unix:/run/lesson-scheduling/gunicorn.sock;
     }
 }
 ```
+
+Long solves run as background jobs and the browser polls with short requests, so nginx and gunicorn do not need extended request timeouts.
 
 Enable it:
 

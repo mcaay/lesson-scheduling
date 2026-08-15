@@ -17,10 +17,13 @@ const vm = require("vm");
 
 const context = {{
     console: console,
+    setTimeout: setTimeout,
     document: {{
         addEventListener: function () {{}}
     }},
-    window: {{}}
+    window: {{
+        setTimeout: setTimeout
+    }}
 }};
 
 vm.createContext(context);
@@ -30,6 +33,7 @@ vm.runInContext(
 );
 
 const ScheduleEditor = context.window.ScheduleEditor;
+const window = context.window;
 
 function assert(condition, message) {{
     if (!condition) {{
@@ -70,7 +74,12 @@ function formFromFields(fields) {{
     }};
 }}
 
+(async function () {{
 {script}
+}}()).catch(function (error) {{
+    console.error(error);
+    process.exitCode = 1;
+}});
 """
     result = subprocess.run(
         [node, "-e", wrapped],
@@ -352,5 +361,79 @@ assert(saveButton.disabled === false, "saving should stay enabled");
 form.listeners.submit({submitter: runButton});
 assert(loading.hidden === false, "running should show solver loading");
 assert(runButton.disabled === true, "run button should be disabled after submission");
+"""
+    )
+
+
+def test_editor_javascript_starts_and_polls_ajax_solver():
+    run_app_js(
+        """
+let fetchCalls = [];
+let destination = "";
+window.FormData = function (form) {
+    this.form = form;
+};
+window.location = {
+    assign: function (url) {
+        destination = url;
+    }
+};
+window.fetch = function (url, options) {
+    fetchCalls.push({url: url, options: options});
+    if (url === "/run/") {
+        return Promise.resolve({
+            ok: true,
+            json: function () {
+                return Promise.resolve({status_url: "/solve-jobs/1/"});
+            }
+        });
+    }
+    return Promise.resolve({
+        ok: true,
+        json: function () {
+            return Promise.resolve({status: "complete", result_url: "/result/"});
+        }
+    });
+};
+
+const loading = element("");
+loading.hidden = true;
+const runButton = {
+    disabled: false,
+    hasAttribute: function (name) {
+        return name === "data-run-scheduler";
+    }
+};
+const form = {
+    action: "/run/",
+    listeners: {},
+    addEventListener: function (eventName, callback) {
+        this.listeners[eventName] = callback;
+    }
+};
+const scope = {
+    querySelector: function (selector) {
+        return selector === "[data-solver-loading]" ? loading : null;
+    },
+    querySelectorAll: function (selector) {
+        return selector === "[data-solver-form]" ? [form] : [];
+    }
+};
+let prevented = false;
+
+ScheduleEditor.installSolverLoading(scope);
+form.listeners.submit({
+    submitter: runButton,
+    preventDefault: function () {
+        prevented = true;
+    }
+});
+await new Promise(function (resolve) { setTimeout(resolve, 0); });
+await new Promise(function (resolve) { setTimeout(resolve, 0); });
+
+assert(prevented, "solver submission should be handled by AJAX");
+assert(fetchCalls.length === 2, "browser should start and poll the solve job");
+assert(fetchCalls[0].options.headers["X-Requested-With"] === "XMLHttpRequest", "start request should identify AJAX");
+assert(destination === "/result/", "completed job should open its result page");
 """
     )
