@@ -110,13 +110,17 @@ def test_editor_explains_every_input_with_tooltips(client):
     for field in fields:
         assert f'data-help-for="{field}"'.encode() in response.content
 
-    assert b"Ranges are OR" in response.content
-    assert b"leader, follower, or solo" in response.content
+    tooltip_count = response.content.count(b'class="field-tooltip"')
+    assert tooltip_count > len(fields)
+    assert response.content.count(b'<span class="field-tooltip-example-label">E.g.</span>') == tooltip_count
+    assert response.content.count(b"<hr>") == tooltip_count
+    assert b"<code>Tuesday</code>" in response.content
+    assert b"<code>Monday-Thursday</code>" in response.content
     assert b"Default: leader, follower" not in response.content
-    assert b"maximum number of classes this instructor would ideally teach" in response.content
+    assert b"The roles this instructor can teach" in response.content
     assert b"Set both preferred class fields to 0 to disable the instructor" in response.content
-    assert b"times when this group can have a lesson" in response.content
-    assert b"fits completely within one of these times" in response.content
+    assert b"Optional times when this group can have a lesson" in response.content
+    assert b"must fit completely inside one of them" in response.content
     assert b'tabindex="0"' in response.content
 
 

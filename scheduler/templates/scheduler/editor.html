@@ -55,15 +55,15 @@
                         <div class="editor-row" data-row>
                             <div class="field-grid lesson-block-grid">
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Days" field="lesson_block_days" help="Use one day or one inclusive consecutive range: Tuesday or Monday-Thursday. Valid days are Monday through Sunday." only %}
+                                    {% include "scheduler/_field_help.html" with label="Days" field="lesson_block_days" example_1="Tuesday" example_2="Monday-Thursday" meaning="The day or consecutive range of days when this lesson block is available. Use Monday through Sunday." only %}
                                     <input type="text" name="lesson_block_days" value="{{ block.days }}">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Starts" field="lesson_block_start" help="Use 24-hour HH:MM on a 5-minute grid, for example 18:00 or 19:30." only %}
+                                    {% include "scheduler/_field_help.html" with label="Starts" field="lesson_block_start" example_1="18:00" example_2="19:30" meaning="The time when this lesson block begins. Use 24-hour time in 5-minute steps." only %}
                                     <input type="time" name="lesson_block_start" value="{{ block.start }}">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Ends" field="lesson_block_end" help="Use 24-hour HH:MM on a 5-minute grid. It must be later than the start, for example 19:25." only %}
+                                    {% include "scheduler/_field_help.html" with label="Ends" field="lesson_block_end" example_1="19:25" example_2="20:55" meaning="The time when this lesson block ends. It must be later than the start and use 5-minute steps." only %}
                                     <input type="time" name="lesson_block_end" value="{{ block.end }}">
                                 </label>
                                 {% include "scheduler/_remove_button.html" %}
@@ -75,15 +75,15 @@
                         <div class="editor-row" data-row>
                             <div class="field-grid lesson-block-grid">
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Days" field="lesson_block_days" help="Use one day or one inclusive consecutive range: Tuesday or Monday-Thursday. Valid days are Monday through Sunday." only %}
+                                    {% include "scheduler/_field_help.html" with label="Days" field="lesson_block_days" example_1="Tuesday" example_2="Monday-Thursday" meaning="The day or consecutive range of days when this lesson block is available. Use Monday through Sunday." only %}
                                     <input type="text" name="lesson_block_days" value="Monday">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Starts" field="lesson_block_start" help="Use 24-hour HH:MM on a 5-minute grid, for example 18:00 or 19:30." only %}
+                                    {% include "scheduler/_field_help.html" with label="Starts" field="lesson_block_start" example_1="18:00" example_2="19:30" meaning="The time when this lesson block begins. Use 24-hour time in 5-minute steps." only %}
                                     <input type="time" name="lesson_block_start" value="">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Ends" field="lesson_block_end" help="Use 24-hour HH:MM on a 5-minute grid. It must be later than the start, for example 19:25." only %}
+                                    {% include "scheduler/_field_help.html" with label="Ends" field="lesson_block_end" example_1="19:25" example_2="20:55" meaning="The time when this lesson block ends. It must be later than the start and use 5-minute steps." only %}
                                     <input type="time" name="lesson_block_end" value="">
                                 </label>
                                 {% include "scheduler/_remove_button.html" %}
@@ -102,11 +102,11 @@
                         <div class="editor-row" data-row>
                             <div class="field-grid location-grid">
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Location name" field="location_name" help="Use any non-empty name, for example Main Studio or Rynek. Rooms inside it are numbered automatically." only %}
+                                    {% include "scheduler/_field_help.html" with label="Location name" field="location_name" example_1="Main Studio" example_2="Rynek" meaning="The location name shown in the generated schedule. Rooms inside it are numbered automatically." only %}
                                     <input type="text" name="location_name" value="{{ location.name }}">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Number of rooms" field="location_rooms_count" help="Use a whole number of 1 or more. Rooms are interchangeable and numbered automatically." only %}
+                                    {% include "scheduler/_field_help.html" with label="Number of rooms" field="location_rooms_count" example_1="1" example_2="3" meaning="How many interchangeable rooms are available at this location." only %}
                                     <input type="number" name="location_rooms_count" min="1" value="{{ location.rooms_count }}">
                                 </label>
                                 {% include "scheduler/_remove_button.html" %}
@@ -118,11 +118,11 @@
                         <div class="editor-row" data-row>
                             <div class="field-grid location-grid">
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Location name" field="location_name" help="Use any non-empty name, for example Main Studio or Rynek. Rooms inside it are numbered automatically." only %}
+                                    {% include "scheduler/_field_help.html" with label="Location name" field="location_name" example_1="Main Studio" example_2="Rynek" meaning="The location name shown in the generated schedule. Rooms inside it are numbered automatically." only %}
                                     <input type="text" name="location_name" value="">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Number of rooms" field="location_rooms_count" help="Use a whole number of 1 or more. Rooms are interchangeable and numbered automatically." only %}
+                                    {% include "scheduler/_field_help.html" with label="Number of rooms" field="location_rooms_count" example_1="1" example_2="3" meaning="How many interchangeable rooms are available at this location." only %}
                                     <input type="number" name="location_rooms_count" min="1" value="1">
                                 </label>
                                 {% include "scheduler/_remove_button.html" %}
@@ -144,39 +144,39 @@
                             </div>
                             <div class="field-grid instructor-grid">
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Instructor name" field="instructor_name" help="Use a non-empty name, for example Anna. Use the exact same spelling in instructor-pair fields." only %}
+                                    {% include "scheduler/_field_help.html" with label="Instructor name" field="instructor_name" example_1="Anna" example_2="Jan Kowalski" meaning="The instructor's name. Use the exact same spelling in the instructor-pair fields." only %}
                                     <input type="text" name="instructor_name" value="{{ instructor.name }}">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Roles" field="instructor_roles" help="Use a comma-separated list containing leader, follower, or solo. Examples: leader; follower, solo." only %}
+                                    {% include "scheduler/_field_help.html" with label="Roles" field="instructor_roles" example_1="leader" example_2="follower, solo" meaning="The roles this instructor can teach. Separate multiple roles with commas." only %}
                                     <input type="text" name="instructor_roles" value="{{ instructor.roles }}">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Preferred min classes" field="instructor_preferred_min_classes" help="Use a whole number of 0 or more. This is a soft weekly workload target. Default: 1." only %}
+                                    {% include "scheduler/_field_help.html" with label="Preferred min classes" field="instructor_preferred_min_classes" example_1="0" example_2="2" meaning="The fewest classes this instructor would ideally teach each week. The scheduler may assign fewer if needed." only %}
                                     <input type="number" name="instructor_preferred_min_classes" min="0" value="{{ instructor.preferred_min_classes_per_week }}">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Preferred max classes" field="instructor_preferred_max_classes" help="Enter the maximum number of classes this instructor would ideally teach each week. The scheduler may assign more if needed. Set both preferred class fields to 0 to disable the instructor." only %}
+                                    {% include "scheduler/_field_help.html" with label="Preferred max classes" field="instructor_preferred_max_classes" example_1="3" example_2="0" meaning="The most classes this instructor would ideally teach each week. The scheduler may assign more if needed. Set both preferred class fields to 0 to disable the instructor." only %}
                                     <input type="number" name="instructor_preferred_max_classes" min="0" value="{{ instructor.preferred_max_classes_per_week }}">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Can teach levels" field="instructor_can_teach" help="Use exact course names separated by commas, for example Lindy Hop beginner, Solo Jazz. For group instances such as Course #1, enter Course." only %}
+                                    {% include "scheduler/_field_help.html" with label="Can teach levels" field="instructor_can_teach" example_1="Lindy Hop beginner" example_2="Lindy Hop beginner, Solo Jazz" meaning="The courses this instructor can teach. Use exact course names separated by commas. For a group such as Course #1, enter Course." only %}
                                     <input type="text" name="instructor_can_teach" value="{{ instructor.can_teach }}">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Available" field="instructor_available" help="Use comma-separated alternatives in Day HH:MM-HH:MM format. Example: Tuesday 18:00-21:00, Thursday 18:00-21:00. Ranges are OR." only %}
+                                    {% include "scheduler/_field_help.html" with label="Available" field="instructor_available" example_1="Tuesday 18:00-21:00" example_2="Tuesday 18:00-21:00, Thursday 18:00-21:00" meaning="The times when this instructor can teach. Separate multiple options with commas; the scheduler may use any one of them." only %}
                                     <input type="text" name="instructor_available" value="{{ instructor.available }}">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Prefers teaching with" field="instructor_prefers_with" help="Optional comma-separated instructor names, for example Anna, Jan. This is a soft preference." only %}
+                                    {% include "scheduler/_field_help.html" with label="Prefers teaching with" field="instructor_prefers_with" example_1="Anna" example_2="Anna, Jan" meaning="Instructors this person would prefer to teach with. This influences the schedule but is not required." only %}
                                     <input type="text" name="instructor_prefers_with" value="{{ instructor.prefers_with }}">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Avoids teaching with" field="instructor_avoids_with" help="Optional comma-separated instructor names, for example Anna, Jan. This is a soft preference, not a ban." only %}
+                                    {% include "scheduler/_field_help.html" with label="Avoids teaching with" field="instructor_avoids_with" example_1="Anna" example_2="Anna, Jan" meaning="Instructors this person would prefer not to teach with. The scheduler may still use these pairs if needed." only %}
                                     <input type="text" name="instructor_avoids_with" value="{{ instructor.avoids_with }}">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Cannot teach with" field="instructor_cannot_teach_with" help="Optional comma-separated instructor names. This is a hard ban and applies to the pair in both directions." only %}
+                                    {% include "scheduler/_field_help.html" with label="Cannot teach with" field="instructor_cannot_teach_with" example_1="Anna" example_2="Anna, Jan" meaning="Instructors this person must never teach with. The restriction applies to both people in the pair." only %}
                                     <input type="text" name="instructor_cannot_teach_with" value="{{ instructor.cannot_teach_with }}">
                                 </label>
                             </div>
@@ -190,39 +190,39 @@
                             </div>
                             <div class="field-grid instructor-grid">
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Instructor name" field="instructor_name" help="Use a non-empty name, for example Anna. Use the exact same spelling in instructor-pair fields." only %}
+                                    {% include "scheduler/_field_help.html" with label="Instructor name" field="instructor_name" example_1="Anna" example_2="Jan Kowalski" meaning="The instructor's name. Use the exact same spelling in the instructor-pair fields." only %}
                                     <input type="text" name="instructor_name" value="">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Roles" field="instructor_roles" help="Use a comma-separated list containing leader, follower, or solo. Examples: leader; follower, solo." only %}
+                                    {% include "scheduler/_field_help.html" with label="Roles" field="instructor_roles" example_1="leader" example_2="follower, solo" meaning="The roles this instructor can teach. Separate multiple roles with commas." only %}
                                     <input type="text" name="instructor_roles" value="">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Preferred min classes" field="instructor_preferred_min_classes" help="Use a whole number of 0 or more. This is a soft weekly workload target. Default: 1." only %}
+                                    {% include "scheduler/_field_help.html" with label="Preferred min classes" field="instructor_preferred_min_classes" example_1="0" example_2="2" meaning="The fewest classes this instructor would ideally teach each week. The scheduler may assign fewer if needed." only %}
                                     <input type="number" name="instructor_preferred_min_classes" min="0" value="1">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Preferred max classes" field="instructor_preferred_max_classes" help="Enter the maximum number of classes this instructor would ideally teach each week. The scheduler may assign more if needed. Set both preferred class fields to 0 to disable the instructor." only %}
+                                    {% include "scheduler/_field_help.html" with label="Preferred max classes" field="instructor_preferred_max_classes" example_1="3" example_2="0" meaning="The most classes this instructor would ideally teach each week. The scheduler may assign more if needed. Set both preferred class fields to 0 to disable the instructor." only %}
                                     <input type="number" name="instructor_preferred_max_classes" min="0" value="3">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Can teach levels" field="instructor_can_teach" help="Use exact course names separated by commas, for example Lindy Hop beginner, Solo Jazz. For group instances such as Course #1, enter Course." only %}
+                                    {% include "scheduler/_field_help.html" with label="Can teach levels" field="instructor_can_teach" example_1="Lindy Hop beginner" example_2="Lindy Hop beginner, Solo Jazz" meaning="The courses this instructor can teach. Use exact course names separated by commas. For a group such as Course #1, enter Course." only %}
                                     <input type="text" name="instructor_can_teach" value="">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Available" field="instructor_available" help="Use comma-separated alternatives in Day HH:MM-HH:MM format. Example: Tuesday 18:00-21:00, Thursday 18:00-21:00. Ranges are OR." only %}
+                                    {% include "scheduler/_field_help.html" with label="Available" field="instructor_available" example_1="Tuesday 18:00-21:00" example_2="Tuesday 18:00-21:00, Thursday 18:00-21:00" meaning="The times when this instructor can teach. Separate multiple options with commas; the scheduler may use any one of them." only %}
                                     <input type="text" name="instructor_available" value="">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Prefers teaching with" field="instructor_prefers_with" help="Optional comma-separated instructor names, for example Anna, Jan. This is a soft preference." only %}
+                                    {% include "scheduler/_field_help.html" with label="Prefers teaching with" field="instructor_prefers_with" example_1="Anna" example_2="Anna, Jan" meaning="Instructors this person would prefer to teach with. This influences the schedule but is not required." only %}
                                     <input type="text" name="instructor_prefers_with" value="">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Avoids teaching with" field="instructor_avoids_with" help="Optional comma-separated instructor names, for example Anna, Jan. This is a soft preference, not a ban." only %}
+                                    {% include "scheduler/_field_help.html" with label="Avoids teaching with" field="instructor_avoids_with" example_1="Anna" example_2="Anna, Jan" meaning="Instructors this person would prefer not to teach with. The scheduler may still use these pairs if needed." only %}
                                     <input type="text" name="instructor_avoids_with" value="">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Cannot teach with" field="instructor_cannot_teach_with" help="Optional comma-separated instructor names. This is a hard ban and applies to the pair in both directions." only %}
+                                    {% include "scheduler/_field_help.html" with label="Cannot teach with" field="instructor_cannot_teach_with" example_1="Anna" example_2="Anna, Jan" meaning="Instructors this person must never teach with. The restriction applies to both people in the pair." only %}
                                     <input type="text" name="instructor_cannot_teach_with" value="">
                                 </label>
                             </div>
@@ -240,23 +240,23 @@
                         <div class="editor-row" data-row>
                             <div class="field-grid group-grid">
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Group name" field="group_name" help="Use the course name. Add #1, #2, and so on for multiple instances, for example Lindy Hop beginner #1." only %}
+                                    {% include "scheduler/_field_help.html" with label="Group name" field="group_name" example_1="Lindy Hop beginner" example_2="Lindy Hop beginner #1" meaning="The course or group name shown in the schedule. Add #1, #2, and so on when the same course has multiple groups." only %}
                                     <input type="text" name="group_name" value="{{ group.name }}">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Lessons per week" field="group_lessons_per_week" help="Use a whole number of 1 or more. The solver schedules exactly this many lessons every week." only %}
+                                    {% include "scheduler/_field_help.html" with label="Lessons per week" field="group_lessons_per_week" example_1="1" example_2="2" meaning="The exact number of lessons this group must receive each week." only %}
                                     <input type="number" name="group_lessons_per_week" min="1" value="{{ group.lessons_per_week }}">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Duration minutes" field="group_duration_minutes" help="Use a whole number of minutes on the 5-minute grid. It must exactly match a defined lesson block, for example 85." only %}
+                                    {% include "scheduler/_field_help.html" with label="Duration minutes" field="group_duration_minutes" example_1="60" example_2="85" meaning="The length of each lesson in minutes. It must exactly match a lesson block and use 5-minute steps." only %}
                                     <input type="number" name="group_duration_minutes" min="1" value="{{ group.duration_minutes }}">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Teacher roles needed" field="group_teacher_roles" help="Use one or two roles from leader, follower, and solo. Examples: leader, follower; solo." only %}
+                                    {% include "scheduler/_field_help.html" with label="Teacher roles needed" field="group_teacher_roles" example_1="solo" example_2="leader, follower" meaning="The one or two teacher roles required for each lesson. Separate two roles with a comma." only %}
                                     <input type="text" name="group_teacher_roles" value="{{ group.teacher_roles }}">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Time windows" field="group_time_windows" help="Optional. Enter the times when this group can have a lesson, separated by commas. Example: Tuesday 18:00-21:00, Thursday 18:00-21:00. The scheduler may choose any lesson block that fits completely within one of these times. To require a specific lesson block, enter its exact day and times." only %}
+                                    {% include "scheduler/_field_help.html" with label="Time windows" field="group_time_windows" example_1="Tuesday 18:00-21:00" example_2="Tuesday 18:00-21:00, Thursday 18:00-21:00" meaning="Optional times when this group can have a lesson. A lesson block must fit completely inside one of them. To require a specific block, enter its exact day and times." only %}
                                     <input type="text" name="group_time_windows" value="{{ group.time_windows }}">
                                 </label>
                                 {% include "scheduler/_remove_button.html" %}
@@ -268,23 +268,23 @@
                         <div class="editor-row" data-row>
                             <div class="field-grid group-grid">
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Group name" field="group_name" help="Use the course name. Add #1, #2, and so on for multiple instances, for example Lindy Hop beginner #1." only %}
+                                    {% include "scheduler/_field_help.html" with label="Group name" field="group_name" example_1="Lindy Hop beginner" example_2="Lindy Hop beginner #1" meaning="The course or group name shown in the schedule. Add #1, #2, and so on when the same course has multiple groups." only %}
                                     <input type="text" name="group_name" value="">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Lessons per week" field="group_lessons_per_week" help="Use a whole number of 1 or more. The solver schedules exactly this many lessons every week." only %}
+                                    {% include "scheduler/_field_help.html" with label="Lessons per week" field="group_lessons_per_week" example_1="1" example_2="2" meaning="The exact number of lessons this group must receive each week." only %}
                                     <input type="number" name="group_lessons_per_week" min="1" value="">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Duration minutes" field="group_duration_minutes" help="Use a whole number of minutes on the 5-minute grid. It must exactly match a defined lesson block, for example 85." only %}
+                                    {% include "scheduler/_field_help.html" with label="Duration minutes" field="group_duration_minutes" example_1="60" example_2="85" meaning="The length of each lesson in minutes. It must exactly match a lesson block and use 5-minute steps." only %}
                                     <input type="number" name="group_duration_minutes" min="1" value="">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Teacher roles needed" field="group_teacher_roles" help="Use one or two roles from leader, follower, and solo. Examples: leader, follower; solo." only %}
+                                    {% include "scheduler/_field_help.html" with label="Teacher roles needed" field="group_teacher_roles" example_1="solo" example_2="leader, follower" meaning="The one or two teacher roles required for each lesson. Separate two roles with a comma." only %}
                                     <input type="text" name="group_teacher_roles" value="">
                                 </label>
                                 <label>
-                                    {% include "scheduler/_field_help.html" with label="Time windows" field="group_time_windows" help="Optional. Enter the times when this group can have a lesson, separated by commas. Example: Tuesday 18:00-21:00, Thursday 18:00-21:00. The scheduler may choose any lesson block that fits completely within one of these times. To require a specific lesson block, enter its exact day and times." only %}
+                                    {% include "scheduler/_field_help.html" with label="Time windows" field="group_time_windows" example_1="Tuesday 18:00-21:00" example_2="Tuesday 18:00-21:00, Thursday 18:00-21:00" meaning="Optional times when this group can have a lesson. A lesson block must fit completely inside one of them. To require a specific block, enter its exact day and times." only %}
                                     <input type="text" name="group_time_windows" value="">
                                 </label>
                                 {% include "scheduler/_remove_button.html" %}
@@ -303,14 +303,14 @@
 
                     <div class="raw-tools">
                         <label class="file-picker" for="spec_file">
-                            {% include "scheduler/_field_help.html" with label="Open spec" field="spec_file" help="Choose a UTF-8 .txt raw specification previously saved by this app." only %}
+                            {% include "scheduler/_field_help.html" with label="Open spec" field="spec_file" example_1="schedule.txt" example_2="2026-08-15-lesson-schedule.txt" meaning="A UTF-8 text specification previously saved by this app." only %}
                             <input id="spec_file" form="import-spec-form" type="file" name="spec_file">
                         </label>
                         <button type="submit" form="import-spec-form" class="secondary-button">Upload</button>
                     </div>
 
                     <label class="raw-spec-field">
-                        {% include "scheduler/_field_help.html" with label="Specification text" field="raw_spec" help="Edit the complete raw specification directly. GUI fields stop overwriting it after your first manual edit; line errors appear when you run it." only %}
+                        {% include "scheduler/_field_help.html" with label="Specification text" field="raw_spec" example_1="group Lindy Hop beginner" example_2="available Tuesday 18:00-21:00" meaning="The complete project specification. You can edit it directly; after your first edit, GUI fields stop overwriting it. Errors appear when you run the scheduler." only %}
                         <textarea name="raw_spec" data-raw-spec-input>{{ form.raw_spec.value|default_if_none:"" }}</textarea>
                     </label>
                 </section>

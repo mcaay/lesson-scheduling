@@ -123,6 +123,31 @@ label {
     visibility: hidden;
 }
 
+.field-tooltip-examples {
+    display: grid;
+    gap: 3px;
+}
+
+.field-tooltip-example-label {
+    color: #b9c7d7;
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+
+.field-tooltip code {
+    color: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: normal;
+}
+
+.field-tooltip hr {
+    width: 100%;
+    margin: 9px 0;
+    border: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.24);
+}
+
 .field-help:hover .field-tooltip,
 .field-help:focus .field-tooltip {
     opacity: 1;
