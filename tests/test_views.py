@@ -80,6 +80,43 @@ def test_editor_has_repeatable_row_controls(client):
     assert b">Remove</button>" not in response.content
 
 
+def test_editor_explains_every_input_with_tooltips(client):
+    response = client.get(reverse("scheduler:editor"))
+
+    assert response.status_code == 200
+    fields = (
+        "lesson_block_days",
+        "lesson_block_start",
+        "lesson_block_end",
+        "location_name",
+        "location_rooms_count",
+        "instructor_name",
+        "instructor_roles",
+        "instructor_preferred_min_classes",
+        "instructor_preferred_max_classes",
+        "instructor_can_teach",
+        "instructor_available",
+        "instructor_prefers_with",
+        "instructor_avoids_with",
+        "instructor_cannot_teach_with",
+        "group_name",
+        "group_lessons_per_week",
+        "group_duration_minutes",
+        "group_teacher_roles",
+        "group_time_windows",
+        "spec_file",
+        "raw_spec",
+    )
+    for field in fields:
+        assert f'data-help-for="{field}"'.encode() in response.content
+
+    assert b"Ranges are OR" in response.content
+    assert b"leader, follower, or solo" in response.content
+    assert b"0 disables the instructor" in response.content
+    assert b"exact lesson-block window fixes the time" in response.content
+    assert b'tabindex="0"' in response.content
+
+
 def test_run_schedule_shows_result(client):
     response = client.post(reverse("scheduler:run"), {"raw_spec": EXAMPLE_SPEC})
 
