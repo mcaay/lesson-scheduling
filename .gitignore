@@ -47,6 +47,7 @@ yarn-error.log*
 .idea/
 .vscode/
 *.swp
+.nvimlog
 
 # Local brainstorming companion output
 .superpowers/
